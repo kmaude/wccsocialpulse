@@ -3,18 +3,22 @@ import { Lightbulb, BarChart3, Mail } from "lucide-react";
 import { InsightsList } from "@/components/admin/InsightsList";
 import { EmailAnalytics } from "@/components/admin/EmailAnalytics";
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 const AdminDashboard = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Admin Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage insights, emails, and templates</p>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="flex-1 container mx-auto px-4 py-6">
         <Tabs defaultValue="insights" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="insights" className="gap-1.5">
@@ -39,6 +43,8 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      <Footer />
     </div>
   );
 };
