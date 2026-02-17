@@ -35,18 +35,24 @@ export function PlatformHandleForm({ onSubmit, scanning }: PlatformHandleFormPro
     youtube: "",
     tiktok: "",
   });
-  const [firstEdited, setFirstEdited] = useState<string | null>(null);
+  const firstEditedRef = useState<string | null>(null);
+  const [firstEdited, setFirstEdited] = [firstEditedRef[0], firstEditedRef[1]];
 
   const updateHandle = (key: string, value: string) => {
+    // Track which platform was edited first
+    if (!firstEdited) {
+      setFirstEdited(key);
+    }
+    const isSource = !firstEdited || firstEdited === key;
+
     setHandles((prev) => {
       const next = { ...prev, [key]: value };
 
-      // If this is the first platform being typed into, auto-fill empty others
-      if (!firstEdited || firstEdited === key) {
-        setFirstEdited(key);
+      // Auto-fill others only when typing in the first-edited platform
+      if (isSource) {
         for (const p of PLATFORMS) {
-          if (p.key !== key && prev[p.key] === "") {
-            next[p.key] = value;
+          if (p.key !== key && (prev[p.key] === "" || prev[p.key] === prev[key as keyof PlatformHandles])) {
+            next[p.key as keyof PlatformHandles] = value;
           }
         }
       }
