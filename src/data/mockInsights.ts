@@ -113,16 +113,16 @@ export const mockInsights: Insight[] = [
   },
   {
     id: "ins-006",
-    headline: "Tech Startups Underinvesting in LinkedIn See Competitor Gaps Widen",
-    verticals: ["Tech"],
+    headline: "TikTok-First Brands See 4x Discovery Rate vs. Static-Only Competitors",
+    verticals: ["CPG", "Health & Wellness"],
     dateGenerated: "2026-02-11",
     status: "New",
-    newsletterCopy: `**LinkedIn is the sleeper platform for B2B tech visibility.**\n\nTech brands that post 3+ times per week on LinkedIn show a **26-point higher** Visibility Score versus those posting once or less. The competitor velocity gap is widening for brands ignoring this channel.`,
+    newsletterCopy: `**TikTok is the discovery engine your competitors are already using.**\n\nBrands that publish 3+ TikToks per week see a **4x higher discovery rate** (new followers from non-followers) compared to brands relying only on Instagram static posts.\n\nThe algorithm rewards consistency and native short-form content. Cross-posting from Reels helps, but native TikTok content outperforms by 35% on average.\n\n**What to do now:**\n- Commit to 3+ native TikTok posts per week\n- Use trending sounds within 48 hours of emergence\n- Film vertical, raw-feeling content (polished ads underperform)`,
     supportingData: [
-      { label: "Avg Score (Active LinkedIn)", value: "68", changeDirection: "up" },
-      { label: "Avg Score (Inactive LinkedIn)", value: "42", changeDirection: "down" },
-      { label: "Competitor Gap (Active)", value: "Closing", changeDirection: "up" },
-      { label: "Competitor Gap (Inactive)", value: "Widening", changeDirection: "down" },
+      { label: "Discovery Rate (TikTok-Active)", value: "12.4%", change: "+3.1%", changeDirection: "up" },
+      { label: "Discovery Rate (Static-Only)", value: "3.1%", change: "-0.5%", changeDirection: "down" },
+      { label: "Native vs Cross-Posted Perf", value: "+35%", changeDirection: "up" },
+      { label: "Brands Posting 3+/wk", value: "41%", change: "+9%", changeDirection: "up" },
     ],
   },
 ];
