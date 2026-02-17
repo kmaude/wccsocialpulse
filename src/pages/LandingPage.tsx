@@ -121,8 +121,12 @@ const LandingPage = () => {
                 <CardContent className="pt-8 pb-6">
                   {scanning ? (
                     <div className="space-y-4 py-8">
-                      <div className="w-16 h-16 mx-auto rounded-full border-4 border-primary border-t-transparent animate-spin" />
-                      <p className="text-sm text-muted-foreground">Analyzing {handle}...</p>
+                      <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                        <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                        <Eye className="h-8 w-8 text-primary animate-pulse" />
+                      </div>
+                      <p className="text-sm text-muted-foreground animate-pulse">Analyzing {handle}...</p>
                     </div>
                   ) : demoScore !== null ? (
                     <div className="space-y-4">
