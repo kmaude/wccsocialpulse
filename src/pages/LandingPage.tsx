@@ -210,7 +210,10 @@ const LandingPage = () => {
                 Get Your Free Scan <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <p className="text-xs text-muted-foreground pt-2">
-                Powered by <a href="https://westcoastcontent.com" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-foreground transition-colors">WCC</a>
+                Social Pulse is a product of West Coast Content Company.{" "}
+                <a href="https://westcoastcontent.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:text-foreground transition-colors">
+                  Learn about our agency services →
+                </a>
               </p>
             </CardContent>
           </Card>
