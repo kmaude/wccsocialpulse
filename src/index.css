@@ -147,26 +147,44 @@
 
   .logo-icon-shimmer {
     position: relative;
-    filter: drop-shadow(0 0 0px hsl(0 0% 100% / 0));
-    animation: icon-shimmer 4s ease-in-out infinite;
+    overflow: visible;
+  }
+
+  .logo-icon-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 35%,
+      hsl(0 0% 100% / 0.85) 50%,
+      transparent 65%,
+      transparent 100%
+    );
+    mix-blend-mode: overlay;
+    border-radius: 2px;
+    opacity: 0;
+    animation: ekg-sweep 4s ease-in-out infinite;
+    pointer-events: none;
   }
 }
 
-@keyframes icon-shimmer {
-  0%, 70%, 100% {
-    filter: drop-shadow(0 0 0px hsl(0 0% 100% / 0));
+@keyframes ekg-sweep {
+  0%, 60%, 100% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  65% {
     opacity: 1;
+    transform: translateX(-100%);
   }
   80% {
-    filter: drop-shadow(0 0 4px hsl(0 0% 100% / 0.8));
     opacity: 1;
+    transform: translateX(100%);
   }
   85% {
-    filter: drop-shadow(0 0 1px hsl(0 0% 100% / 0.3));
-    opacity: 0.85;
-  }
-  90% {
-    filter: drop-shadow(0 0 6px hsl(0 0% 100% / 0.9));
-    opacity: 1;
+    opacity: 0;
+    transform: translateX(120%);
   }
 }
