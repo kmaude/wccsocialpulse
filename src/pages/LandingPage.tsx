@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { VisibilityScoreGauge } from "@/components/dashboard/VisibilityScoreGauge";
+import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const FEATURES = [
   { icon: Eye, title: "Visibility Score", desc: "One 0–100 number that captures your brand's entire social presence." },
@@ -21,30 +23,19 @@ const FEATURES = [
 
 const PRICING = [
   {
-    name: "Free Scan",
-    price: "$0",
-    desc: "See your score instantly",
+    name: "Free Scan", price: "$0", desc: "See your score instantly",
     features: ["One-time Visibility Score", "Overall score + tier", "Basic recommendations"],
-    cta: "Get Free Scan",
-    highlighted: false,
+    cta: "Get Free Scan", highlighted: false,
   },
   {
-    name: "Pro",
-    price: "$49",
-    period: "/mo",
-    desc: "Full visibility intelligence",
+    name: "Pro", price: "$49", period: "/mo", desc: "Full visibility intelligence",
     features: ["Weekly score updates", "6-dimension breakdown", "Competitor tracking (5)", "AI recommendations", "Monthly email reports", "Score alert notifications"],
-    cta: "Start Free Trial",
-    highlighted: true,
+    cta: "Start Free Trial", highlighted: true,
   },
   {
-    name: "Agency",
-    price: "$199",
-    period: "/mo",
-    desc: "For teams managing multiple brands",
+    name: "Agency", price: "$199", period: "/mo", desc: "For teams managing multiple brands",
     features: ["Everything in Pro", "Unlimited brands", "White-label reports", "API access", "Priority support", "Custom verticals"],
-    cta: "Contact Sales",
-    highlighted: false,
+    cta: "Contact Sales", highlighted: false,
   },
 ];
 
@@ -52,7 +43,9 @@ const LandingPage = () => {
   const [handle, setHandle] = useState("");
   const [scanning, setScanning] = useState(false);
   const [demoScore, setDemoScore] = useState<number | null>(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const { toast } = useToast();
+  const { session } = useAuth();
 
   const handleScan = () => {
     if (!handle.trim()) {
@@ -137,11 +130,20 @@ const LandingPage = () => {
                           {demoScore < 60 ? "Room to grow!" : "Looking good!"}
                         </p>
                       </div>
-                      <Link to="/dashboard">
-                        <Button className="bg-gradient-hero text-primary-foreground hover:opacity-90">
-                          Unlock Full Report <ArrowRight className="ml-1 h-4 w-4" />
+                      {session ? (
+                        <Link to="/dashboard">
+                          <Button className="bg-gradient-hero text-primary-foreground hover:opacity-90">
+                            View Full Report <ArrowRight className="ml-1 h-4 w-4" />
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button
+                          onClick={() => setEmailModalOpen(true)}
+                          className="bg-gradient-hero text-primary-foreground hover:opacity-90"
+                        >
+                          Get Your Full Report Free — Enter Your Email <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
-                      </Link>
+                      )}
                     </div>
                   ) : null}
                 </CardContent>
@@ -187,10 +189,7 @@ const LandingPage = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {PRICING.map((plan, i) => (
-              <Card
-                key={i}
-                className={`relative ${plan.highlighted ? "border-primary shadow-glow" : ""}`}
-              >
+              <Card key={i} className={`relative ${plan.highlighted ? "border-primary shadow-glow" : ""}`}>
                 {plan.highlighted && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-gradient-hero text-primary-foreground border-0">Most Popular</Badge>
@@ -244,6 +243,15 @@ const LandingPage = () => {
       </section>
 
       <Footer />
+
+      {/* Email Capture Modal */}
+      {demoScore !== null && (
+        <EmailCaptureModal
+          open={emailModalOpen}
+          onOpenChange={setEmailModalOpen}
+          score={demoScore}
+        />
+      )}
     </div>
   );
 };

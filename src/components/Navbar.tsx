@@ -1,18 +1,35 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Activity, Menu, X } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Activity, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
-const NAV_ITEMS = [
+const PUBLIC_NAV = [
+  { label: "Home", path: "/" },
+];
+
+const AUTH_NAV = [
   { label: "Home", path: "/" },
   { label: "Dashboard", path: "/dashboard" },
-  { label: "Admin", path: "/admin" },
 ];
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { session, user, isAdmin, signOut, loading } = useAuth();
+
+  const navItems = session ? AUTH_NAV : PUBLIC_NAV;
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-lg">
@@ -26,7 +43,7 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link key={item.path} to={item.path}>
               <Button
                 variant="ghost"
@@ -40,10 +57,50 @@ export function Navbar() {
               </Button>
             </Link>
           ))}
+
+          {session && isAdmin && (
+            <Link to="/admin">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "text-sm font-medium",
+                  location.pathname === "/admin" && "bg-accent text-accent-foreground"
+                )}
+              >
+                Admin
+              </Button>
+            </Link>
+          )}
+
           <div className="ml-3 pl-3 border-l">
-            <Button size="sm" className="bg-gradient-hero hover:opacity-90 text-primary-foreground">
-              Get Started
-            </Button>
+            {!loading && !session ? (
+              <Link to="/login">
+                <Button size="sm" className="bg-gradient-hero hover:opacity-90 text-primary-foreground">
+                  Sign In
+                </Button>
+              </Link>
+            ) : session ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                        {user?.email?.charAt(0).toUpperCase() ?? "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm max-w-[120px] truncate hidden lg:inline">
+                      {user?.email}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </div>
         </div>
 
@@ -56,7 +113,7 @@ export function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden border-t bg-card p-4 space-y-2">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link key={item.path} to={item.path} onClick={() => setOpen(false)}>
               <Button
                 variant="ghost"
@@ -69,7 +126,20 @@ export function Navbar() {
               </Button>
             </Link>
           ))}
-          <Button className="w-full bg-gradient-hero text-primary-foreground">Get Started</Button>
+          {session && isAdmin && (
+            <Link to="/admin" onClick={() => setOpen(false)}>
+              <Button variant="ghost" className="w-full justify-start">Admin</Button>
+            </Link>
+          )}
+          {!loading && !session ? (
+            <Link to="/login" onClick={() => setOpen(false)}>
+              <Button className="w-full bg-gradient-hero text-primary-foreground">Sign In</Button>
+            </Link>
+          ) : session ? (
+            <Button variant="ghost" className="w-full justify-start" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" /> Sign Out
+            </Button>
+          ) : null}
         </div>
       )}
     </nav>

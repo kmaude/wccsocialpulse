@@ -36,8 +36,8 @@ export function Footer() {
           <div>
             <h4 className="font-display font-semibold mb-3 text-sm">Legal</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><span className="cursor-default">Privacy</span></li>
-              <li><span className="cursor-default">Terms</span></li>
+              <li><Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link></li>
+              <li><Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link></li>
             </ul>
           </div>
         </div>
