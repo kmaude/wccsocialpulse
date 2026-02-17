@@ -12,6 +12,7 @@ type Profile = {
   marketing_consent: boolean;
   tos_accepted_at: string | null;
   tos_version_id: string | null;
+  has_password: boolean;
 };
 
 type AuthContextType = {
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, name, business_name, email, vertical, plan_tier, marketing_consent, tos_accepted_at, tos_version_id")
+      .select("id, name, business_name, email, vertical, plan_tier, marketing_consent, tos_accepted_at, tos_version_id, has_password")
       .eq("id", userId)
       .single();
     setProfile(data);

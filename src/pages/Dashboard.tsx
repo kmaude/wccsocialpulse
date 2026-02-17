@@ -13,6 +13,7 @@ import { AIRecommendations } from "@/components/dashboard/AIRecommendations";
 import { FirstReportCard } from "@/components/dashboard/FirstReportCard";
 import { MonthlyReportPreview } from "@/components/dashboard/MonthlyReportPreview";
 import { PremiumComparisonTable } from "@/components/dashboard/PremiumComparisonTable";
+import { SetPasswordCard } from "@/components/dashboard/SetPasswordCard";
 import { useAuth } from "@/hooks/useAuth";
 import {
   mockUserScore, mockDimensions, mockContentPosts, mockCompetitors,
@@ -144,6 +145,9 @@ const Dashboard = () => {
             <PremiumComparisonTable />
           </div>
         )}
+
+        {/* Optional password creation */}
+        <SetPasswordCard />
       </main>
 
       <Footer />

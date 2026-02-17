@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { Mail, ArrowRight, LogIn, UserPlus } from "lucide-react";
+import { Mail, ArrowRight, LogIn, UserPlus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,32 +15,32 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const { session, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   if (!authLoading && session) return <Navigate to="/dashboard" replace />;
 
-  const handleSignUp = async () => {
-    if (!email.trim() || !password.trim()) {
-      toast({ title: "Fill in all fields", variant: "destructive" });
-      return;
-    }
-    if (password.length < 6) {
-      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+  // Rate limit: Supabase handles OTP rate limiting (default 60s cooldown). We display a toast if user tries again too quickly.
+  const handleMagicLink = async () => {
+    if (!email.trim()) {
+      toast({ title: "Please enter your email", variant: "destructive" });
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
       options: { emailRedirectTo: window.location.origin + "/onboarding" },
     });
     setLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      if (error.message.toLowerCase().includes("rate limit")) {
+        toast({ title: "Please wait a moment before requesting another link.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      }
     } else {
-      setConfirmationSent(true);
+      setMagicLinkSent(true);
     }
   };
 
@@ -57,7 +57,22 @@ const LoginPage = () => {
     }
   };
 
-  if (confirmationSent) {
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast({ title: "Enter your email first", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/login",
+    });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Password reset link sent to your email." });
+    }
+  };
+
+  if (magicLinkSent) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
@@ -67,9 +82,9 @@ const LoginPage = () => {
               <div className="text-4xl">✉️</div>
               <h3 className="font-display font-semibold text-lg">Check your email</h3>
               <p className="text-sm text-muted-foreground">
-                We sent a confirmation link to <strong>{email}</strong>. Click it to verify your account and get started.
+                We sent a secure login link to <strong>{email}</strong>. Click it to sign in.
               </p>
-              <Button variant="ghost" size="sm" onClick={() => setConfirmationSent(false)}>
+              <Button variant="ghost" size="sm" onClick={() => setMagicLinkSent(false)}>
                 Back to login
               </Button>
             </CardContent>
@@ -93,12 +108,38 @@ const LoginPage = () => {
             <CardDescription>Sign in or create your account</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin"><LogIn className="h-4 w-4 mr-1" /> Sign In</TabsTrigger>
+            <Tabs defaultValue="magic" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="magic"><Wand2 className="h-4 w-4 mr-1" /> Magic Link</TabsTrigger>
+                <TabsTrigger value="password"><LogIn className="h-4 w-4 mr-1" /> Password</TabsTrigger>
                 <TabsTrigger value="signup"><UserPlus className="h-4 w-4 mr-1" /> Sign Up</TabsTrigger>
               </TabsList>
-              <TabsContent value="signin" className="space-y-4 pt-4">
+
+              {/* Tab 1: Magic Link (default) */}
+              <TabsContent value="magic" className="space-y-4 pt-4">
+                <Input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleMagicLink()}
+                  className="h-12"
+                />
+                <Button
+                  onClick={handleMagicLink}
+                  disabled={loading}
+                  className="w-full h-12 bg-gradient-hero text-primary-foreground hover:opacity-90"
+                >
+                  {loading ? "Sending..." : "Send Magic Link"}
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  We'll email you a secure link. No password needed.
+                </p>
+              </TabsContent>
+
+              {/* Tab 2: Password */}
+              <TabsContent value="password" className="space-y-4 pt-4">
                 <Input
                   type="email"
                   placeholder="you@example.com"
@@ -122,33 +163,35 @@ const LoginPage = () => {
                   {loading ? "Signing in..." : "Sign In"}
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="block w-full text-xs text-center text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Forgot Password?
+                </button>
               </TabsContent>
+
+              {/* Tab 3: Sign Up (magic link) */}
               <TabsContent value="signup" className="space-y-4 pt-4">
                 <Input
                   type="email"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-12"
-                />
-                <Input
-                  type="password"
-                  placeholder="Create a password (min 6 characters)"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
+                  onKeyDown={(e) => e.key === "Enter" && handleMagicLink()}
                   className="h-12"
                 />
                 <Button
-                  onClick={handleSignUp}
+                  onClick={handleMagicLink}
                   disabled={loading}
                   className="w-full h-12 bg-gradient-hero text-primary-foreground hover:opacity-90"
                 >
-                  {loading ? "Creating account..." : "Create Account"}
+                  {loading ? "Sending..." : "Create Your Free Account"}
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  We'll send a confirmation email to verify your address.
+                  We'll email you a secure link. No password needed.
                 </p>
               </TabsContent>
             </Tabs>
