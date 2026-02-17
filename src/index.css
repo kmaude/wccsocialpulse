@@ -146,47 +146,14 @@
   }
 
   .logo-icon-shimmer {
-    position: relative;
-    overflow: visible;
-  }
-
-  .logo-icon-shimmer::after {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      transparent 30%,
-      hsl(0 0% 100% / 1) 48%,
-      hsl(252 85% 80% / 0.9) 50%,
-      hsl(0 0% 100% / 1) 52%,
-      transparent 70%,
-      transparent 100%
-    );
-    mix-blend-mode: screen;
-    border-radius: 2px;
-    opacity: 0;
-    animation: ekg-sweep 4s ease-in-out infinite;
-    pointer-events: none;
+    animation: heartbeat 2s ease-in-out infinite;
   }
 }
 
-@keyframes ekg-sweep {
-  0%, 60%, 100% {
-    transform: translateX(-120%);
-    opacity: 0;
-  }
-  65% {
-    opacity: 1;
-    transform: translateX(-100%);
-  }
-  80% {
-    opacity: 1;
-    transform: translateX(100%);
-  }
-  85% {
-    opacity: 0;
-    transform: translateX(120%);
-  }
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  14% { transform: scale(1.15); opacity: 1; }
+  28% { transform: scale(1); opacity: 0.85; }
+  42% { transform: scale(1.1); opacity: 1; }
+  56% { transform: scale(1); opacity: 0.9; }
 }
