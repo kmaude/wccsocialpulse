@@ -6,12 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { VisibilityScoreGauge } from "@/components/dashboard/VisibilityScoreGauge";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { PlatformHandleForm, type PlatformHandles } from "@/components/PlatformHandleForm";
+import { ScanResultsCard } from "@/components/landing/ScanResultsCard";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { getScoreTier, getScoreColor } from "@/data/mockScoreData";
 
 const FEATURES = [
   { icon: Eye, title: "Visibility Score", desc: "One 0–100 number that captures your brand's entire social presence." },
@@ -99,54 +98,29 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Demo Score Result */}
-          {(scanning || demoScore !== null) && (
+          {/* Scan Result */}
+          {scanning && (
             <div className="max-w-sm mx-auto mt-12 text-center">
               <Card className="shadow-glow border-primary/10">
                 <CardContent className="pt-8 pb-6">
-                  {scanning ? (
-                    <div className="space-y-4 py-8">
-                      <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-                        <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-                        <Eye className="h-8 w-8 text-primary animate-pulse" />
-                      </div>
-                      <p className="text-sm text-muted-foreground animate-pulse">Analyzing your profiles...</p>
+                  <div className="space-y-4 py-8">
+                    <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                      <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                      <Eye className="h-8 w-8 text-primary animate-pulse" />
                     </div>
-                  ) : demoScore !== null ? (
-                    <div className="space-y-4">
-                      <VisibilityScoreGauge score={demoScore} size={160} />
-                      <div>
-                        <Badge
-                          className="border-0 text-sm font-semibold px-3 py-1"
-                          style={{ backgroundColor: `${getScoreColor(demoScore)}20`, color: getScoreColor(demoScore) }}
-                        >
-                          {getScoreTier(demoScore)}
-                        </Badge>
-                        <p className="text-sm text-muted-foreground mt-3 max-w-xs mx-auto">
-                          Your estimated visibility puts you in the bottom {Math.max(100 - demoScore, 20)}% of brands in your space.
-                          {demoScore < 50 && " There's significant room to improve."}
-                        </p>
-                      </div>
-                      {session ? (
-                        <Link to="/dashboard">
-                          <Button className="bg-gradient-hero text-primary-foreground hover:opacity-90">
-                            View Full Report <ArrowRight className="ml-1 h-4 w-4" />
-                          </Button>
-                        </Link>
-                      ) : (
-                        <Button
-                          onClick={() => setEmailModalOpen(true)}
-                          className="bg-gradient-hero text-primary-foreground hover:opacity-90"
-                        >
-                          Get Your Full Report Free <ArrowRight className="ml-1 h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ) : null}
+                    <p className="text-sm text-muted-foreground animate-pulse">Analyzing your profiles...</p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
+          )}
+          {!scanning && demoScore !== null && (
+            <ScanResultsCard
+              score={demoScore}
+              session={session}
+              onEmailCapture={() => setEmailModalOpen(true)}
+            />
           )}
         </div>
       </section>
