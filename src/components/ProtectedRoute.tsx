@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import ForbiddenPage from "@/pages/ForbiddenPage";
 
 export function ProtectedRoute({ children, requireAdmin = false, requireOnboarding = false }: {
   children: React.ReactNode;
@@ -18,7 +19,7 @@ export function ProtectedRoute({ children, requireAdmin = false, requireOnboardi
 
   if (!session) return <Navigate to="/login" replace />;
 
-  if (requireAdmin && !isAdmin) return <Navigate to="/" replace />;
+  if (requireAdmin && !isAdmin) return <ForbiddenPage />;
 
   // If onboarding not complete and not already on /onboarding
   if (requireOnboarding && !hasCompletedOnboarding) {
