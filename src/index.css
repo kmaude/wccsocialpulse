@@ -153,16 +153,18 @@
   .logo-icon-shimmer::after {
     content: '';
     position: absolute;
-    inset: -2px;
+    inset: -4px;
     background: linear-gradient(
       90deg,
       transparent 0%,
-      transparent 35%,
-      hsl(0 0% 100% / 0.85) 50%,
-      transparent 65%,
+      transparent 30%,
+      hsl(0 0% 100% / 1) 48%,
+      hsl(252 85% 80% / 0.9) 50%,
+      hsl(0 0% 100% / 1) 52%,
+      transparent 70%,
       transparent 100%
     );
-    mix-blend-mode: overlay;
+    mix-blend-mode: screen;
     border-radius: 2px;
     opacity: 0;
     animation: ekg-sweep 4s ease-in-out infinite;
