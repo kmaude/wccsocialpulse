@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { ArrowRight, Instagram, Facebook, Youtube } from "lucide-react";
 
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -35,30 +36,24 @@ export function PlatformHandleForm({ onSubmit, scanning }: PlatformHandleFormPro
     youtube: "",
     tiktok: "",
   });
-  const firstEditedRef = useState<string | null>(null);
-  const [firstEdited, setFirstEdited] = [firstEditedRef[0], firstEditedRef[1]];
+  const [sameHandle, setSameHandle] = useState(false);
 
   const updateHandle = (key: string, value: string) => {
-    // Track which platform was edited first
-    if (!firstEdited) {
-      setFirstEdited(key);
+    if (sameHandle) {
+      // When checkbox is on, update all fields
+      setHandles({ instagram: value, facebook: value, youtube: value, tiktok: value });
+    } else {
+      setHandles((prev) => ({ ...prev, [key]: value }));
     }
-    const isSource = !firstEdited || firstEdited === key;
+  };
 
-    setHandles((prev) => {
-      const next = { ...prev, [key]: value };
-
-      // Auto-fill others only when typing in the first-edited platform
-      if (isSource) {
-        for (const p of PLATFORMS) {
-          if (p.key !== key && (prev[p.key] === "" || prev[p.key] === prev[key as keyof PlatformHandles])) {
-            next[p.key as keyof PlatformHandles] = value;
-          }
-        }
-      }
-
-      return next;
-    });
+  const toggleSameHandle = (checked: boolean) => {
+    setSameHandle(checked);
+    if (checked) {
+      // Find the first non-empty handle and apply to all
+      const first = Object.values(handles).find((h) => h.trim() !== "") || "";
+      setHandles({ instagram: first, facebook: first, youtube: first, tiktok: first });
+    }
   };
 
   const hasAtLeastOne = Object.values(handles).some((h) => h.trim() !== "");
@@ -79,9 +74,22 @@ export function PlatformHandleForm({ onSubmit, scanning }: PlatformHandleFormPro
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder={p.placeholder}
               className="pl-10 h-11 text-sm"
+              disabled={sameHandle && p.key !== "instagram"}
             />
           </div>
         ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="same-handle"
+          checked={sameHandle}
+          onChange={(e) => toggleSameHandle(e.target.checked)}
+          className="h-4 w-4 shrink-0 rounded-sm border border-primary accent-primary cursor-pointer"
+        />
+        <Label htmlFor="same-handle" className="text-xs text-muted-foreground cursor-pointer">
+          Apply same handle to all platforms
+        </Label>
       </div>
       <Button
         onClick={handleSubmit}
