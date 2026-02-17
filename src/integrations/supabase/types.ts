@@ -158,6 +158,7 @@ export type Database = {
           created_at: string
           email: string | null
           facebook_handle: string | null
+          has_password: boolean
           id: string
           instagram_handle: string | null
           last_email_opened_at: string | null
@@ -179,6 +180,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           facebook_handle?: string | null
+          has_password?: boolean
           id: string
           instagram_handle?: string | null
           last_email_opened_at?: string | null
@@ -200,6 +202,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           facebook_handle?: string | null
+          has_password?: boolean
           id?: string
           instagram_handle?: string | null
           last_email_opened_at?: string | null
