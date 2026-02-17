@@ -11,7 +11,7 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 
 const PLATFORMS = [
   { key: "instagram", icon: Instagram, placeholder: "@yourbrand" },
-  { key: "facebook", icon: Facebook, placeholder: "yourbrand" },
+  { key: "facebook", icon: Facebook, placeholder: "@yourbrand" },
   { key: "youtube", icon: Youtube, placeholder: "@yourbrand" },
   { key: "tiktok", icon: TikTokIcon, placeholder: "@yourbrand" },
 ] as const;
