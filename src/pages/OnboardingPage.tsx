@@ -78,7 +78,7 @@ const OnboardingPage = () => {
                 {["CPG", "Local Services", "Other"].map((v) => (
                   <div key={v} className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
                     <RadioGroupItem value={v} id={v} />
-                    <Label htmlFor={v} className="cursor-pointer flex-1">{v === "CPG" ? "CPG (Consumer Packaged Goods)" : v}</Label>
+                    <Label htmlFor={v} className="cursor-pointer flex-1">{v === "CPG" ? "Consumer Packaged Goods (CPG)" : v}</Label>
                   </div>
                 ))}
               </RadioGroup>
@@ -86,24 +86,26 @@ const OnboardingPage = () => {
 
             {/* Marketing Consent */}
             <div className="flex items-start space-x-3 rounded-lg border p-3">
-              <Checkbox
+              <input
+                type="checkbox"
                 id="marketing"
                 checked={marketingConsent}
-                onCheckedChange={(c) => setMarketingConsent(!!c)}
-                className="mt-0.5"
+                onChange={(e) => setMarketingConsent(e.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded-sm border border-primary accent-primary cursor-pointer"
               />
               <Label htmlFor="marketing" className="text-sm leading-relaxed cursor-pointer">
-                I agree to receive marketing communications from Social Pulse and West Coast Content Company (DBA West Coast Content), including monthly reports, insights, and promotional offers. You can unsubscribe at any time.
+                I agree to receive marketing communications from West Coast Content Company (DBA Social Pulse), including monthly reports, insights, and promotional offers. You can unsubscribe at any time.
               </Label>
             </div>
 
             {/* ToS + Privacy */}
             <div className="flex items-start space-x-3 rounded-lg border p-3">
-              <Checkbox
+              <input
+                type="checkbox"
                 id="tos"
                 checked={tosAccepted}
-                onCheckedChange={(c) => setTosAccepted(!!c)}
-                className="mt-0.5"
+                onChange={(e) => setTosAccepted(e.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded-sm border border-primary accent-primary cursor-pointer"
               />
               <Label htmlFor="tos" className="text-sm leading-relaxed cursor-pointer">
                 I agree to the{" "}
