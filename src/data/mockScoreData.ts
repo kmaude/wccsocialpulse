@@ -9,7 +9,7 @@ export interface ScoreDimension {
 
 export interface ContentPost {
   id: string;
-  platform: "Instagram" | "TikTok" | "YouTube" | "LinkedIn" | "Facebook";
+  platform: "Instagram" | "TikTok" | "YouTube" | "Facebook";
   type: "Reel" | "Post" | "Story" | "Video" | "Short" | "Carousel";
   content: string;
   engagementRate: number;
@@ -42,7 +42,6 @@ export const mockDimensions: ScoreDimension[] = [
 export const mockContentPosts: ContentPost[] = [
   { id: "p1", platform: "Instagram", type: "Reel", content: "Behind the scenes of our new product launch 🚀", engagementRate: 5.2, reach: 12400, date: "2026-02-15" },
   { id: "p2", platform: "TikTok", type: "Video", content: "5 tips for better brand visibility", engagementRate: 7.8, reach: 34200, date: "2026-02-14" },
-  { id: "p3", platform: "LinkedIn", type: "Post", content: "Our latest industry report shows 3x engagement...", engagementRate: 3.1, reach: 4800, date: "2026-02-13" },
   { id: "p4", platform: "Instagram", type: "Carousel", content: "Top 10 social media trends for 2026", engagementRate: 4.6, reach: 8900, date: "2026-02-12" },
   { id: "p5", platform: "YouTube", type: "Video", content: "Full visibility audit walkthrough", engagementRate: 2.9, reach: 6100, date: "2026-02-10" },
   { id: "p6", platform: "Instagram", type: "Story", content: "Q&A with our founder", engagementRate: 6.4, reach: 9200, date: "2026-02-09" },

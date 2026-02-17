@@ -23,19 +23,33 @@ const FEATURES = [
 
 const PRICING = [
   {
-    name: "Free Scan", price: "$0", desc: "See your score instantly",
-    features: ["One-time Visibility Score", "Overall score + tier", "Basic recommendations"],
-    cta: "Get Free Scan", highlighted: false,
+    name: "Free", price: "$0", desc: "Visibility score powered by public data",
+    features: [
+      "Composite Visibility Score",
+      "6-dimension breakdown",
+      "Top/bottom 3 posts per quarter",
+      "Monthly email report",
+      "2 competitors (1 AI-suggested + 1 manual)",
+      "Month-over-month trends",
+      "Instagram + Facebook + YouTube (public data)",
+    ],
+    cta: "Get Your Free Score", highlighted: false,
   },
   {
-    name: "Pro", price: "$49", period: "/mo", desc: "Full visibility intelligence",
-    features: ["Weekly score updates", "6-dimension breakdown", "Competitor tracking (5)", "AI recommendations", "Monthly email reports", "Score alert notifications"],
-    cta: "Start Free Trial", highlighted: true,
-  },
-  {
-    name: "Agency", price: "$199", period: "/mo", desc: "For teams managing multiple brands",
-    features: ["Everything in Pro", "Unlimited brands", "White-label reports", "API access", "Priority support", "Custom verticals"],
-    cta: "Contact Sales", highlighted: false,
+    name: "Premium", price: "$29", period: "/mo", desc: "Full visibility intelligence with OAuth analytics",
+    features: [
+      "Everything in Free, plus:",
+      "Weekly score updates (vs monthly)",
+      "Top/bottom 10 posts per quarter",
+      "10 competitors + AI auto-suggestions",
+      "Full audience demographics & psychographics",
+      "24-month lookback audit",
+      "Opportunity gap analysis",
+      "Sentiment analysis",
+      "All 4 platforms including TikTok",
+      'No "estimated" disclaimer on scores',
+    ],
+    cta: "Start Premium", highlighted: true,
   },
 ];
 
@@ -187,7 +201,7 @@ const LandingPage = () => {
             <h2 className="font-display text-3xl md:text-4xl font-bold">Simple, transparent pricing</h2>
             <p className="text-muted-foreground mt-3">Start free. Upgrade when you're ready.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {PRICING.map((plan, i) => (
               <Card key={i} className={`relative ${plan.highlighted ? "border-primary shadow-glow" : ""}`}>
                 {plan.highlighted && (
