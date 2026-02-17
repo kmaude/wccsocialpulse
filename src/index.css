@@ -53,6 +53,19 @@ All colors MUST be HSL.
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --vertical-cpg: 262 83% 58%;
+    --vertical-local: 173 58% 39%;
+    --vertical-health: 350 80% 55%;
+    --vertical-finance: 217 91% 60%;
+    --vertical-tech: 43 96% 56%;
+    --vertical-other: 215 16% 47%;
+
+    --chart-1: 222 47% 11%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 262 83% 58%;
+    --chart-4: 43 96% 56%;
+    --chart-5: 350 80% 55%;
   }
 
   .dark {
