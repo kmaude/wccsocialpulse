@@ -16,18 +16,24 @@ export function EmailCaptureModal({
   score: number;
 }) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
 
-  const handleSend = async () => {
-    if (!email.trim()) {
-      toast({ title: "Enter your email", variant: "destructive" });
+  const handleSignUp = async () => {
+    if (!email.trim() || !password.trim()) {
+      toast({ title: "Fill in all fields", variant: "destructive" });
+      return;
+    }
+    if (password.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
       return;
     }
     setSending(true);
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signUp({
       email,
+      password,
       options: { emailRedirectTo: window.location.origin + "/onboarding" },
     });
     setSending(false);
@@ -47,14 +53,14 @@ export function EmailCaptureModal({
           </div>
           <DialogTitle className="text-center font-display">Get Your Full Report Free</DialogTitle>
           <DialogDescription className="text-center">
-            Your score is <strong>{score}</strong>. Enter your email to unlock the full 6-dimension breakdown, AI recommendations, and competitor tracking.
+            Your score is <strong>{score}</strong>. Create an account to unlock the full 6-dimension breakdown, AI recommendations, and competitor tracking.
           </DialogDescription>
         </DialogHeader>
         {sent ? (
           <div className="text-center space-y-3 py-4">
             <div className="text-4xl">✉️</div>
             <p className="text-sm text-muted-foreground">
-              Check your email for a magic link to access your full report.
+              Check your email for a confirmation link to access your full report.
             </p>
           </div>
         ) : (
@@ -64,19 +70,26 @@ export function EmailCaptureModal({
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              className="h-12"
+            />
+            <Input
+              type="password"
+              placeholder="Create a password (min 6 characters)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
               className="h-12"
             />
             <Button
-              onClick={handleSend}
+              onClick={handleSignUp}
               disabled={sending}
               className="w-full h-12 bg-gradient-hero text-primary-foreground hover:opacity-90"
             >
-              {sending ? "Sending..." : "Send Magic Link"}
+              {sending ? "Creating account..." : "Create Account"}
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
             <p className="text-xs text-center text-muted-foreground">
-              We'll send a secure link — no password needed.
+              We'll send a confirmation email to verify your address.
             </p>
           </div>
         )}
