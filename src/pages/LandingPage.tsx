@@ -11,6 +11,7 @@ import { VisibilityScoreGauge } from "@/components/dashboard/VisibilityScoreGaug
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { getScoreTier, getScoreColor } from "@/data/mockScoreData";
 
 const FEATURES = [
   { icon: Eye, title: "Visibility Score", desc: "One 0–100 number that captures your brand's entire social presence." },
@@ -139,9 +140,15 @@ const LandingPage = () => {
                     <div className="space-y-4">
                       <VisibilityScoreGauge score={demoScore} size={160} />
                       <div>
-                        <p className="text-sm text-muted-foreground">Your Visibility Score</p>
-                        <p className="font-display font-semibold text-lg mt-1">
-                          {demoScore < 60 ? "Room to grow!" : "Looking good!"}
+                        <Badge
+                          className="border-0 text-sm font-semibold px-3 py-1"
+                          style={{ backgroundColor: `${getScoreColor(demoScore)}20`, color: getScoreColor(demoScore) }}
+                        >
+                          {getScoreTier(demoScore)}
+                        </Badge>
+                        <p className="text-sm text-muted-foreground mt-3 max-w-xs mx-auto">
+                          Your estimated visibility puts you in the bottom {Math.max(100 - demoScore, 20)}% of brands in your space.
+                          {demoScore < 50 && " There's significant room to improve."}
                         </p>
                       </div>
                       {session ? (
@@ -155,7 +162,7 @@ const LandingPage = () => {
                           onClick={() => setEmailModalOpen(true)}
                           className="bg-gradient-hero text-primary-foreground hover:opacity-90"
                         >
-                          Get Your Full Report Free — Enter Your Email <ArrowRight className="ml-1 h-4 w-4" />
+                          Get Your Full Report Free <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -246,11 +253,14 @@ const LandingPage = () => {
             <CardContent className="py-12 space-y-5">
               <h2 className="font-display text-3xl font-bold">Ready to see your score?</h2>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Join hundreds of brands using Social Pulse to take control of their visibility.
+                Built by West Coast Content — the agency behind brands that refuse to be invisible.
               </p>
               <Button size="lg" className="bg-gradient-hero text-primary-foreground hover:opacity-90">
                 Get Your Free Scan <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
+              <p className="text-xs text-muted-foreground pt-2">
+                Powered by <a href="https://westcoastcontent.com" target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-foreground transition-colors">WCC</a>
+              </p>
             </CardContent>
           </Card>
         </div>
