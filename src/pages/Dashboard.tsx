@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { ScoreAlertNudges } from "@/components/dashboard/ScoreAlertNudges";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
@@ -45,6 +46,9 @@ const Dashboard = () => {
 
         {/* Disclaimer Banner */}
         <ScoreDisclaimerBanner planTier={planTier} hasOAuthConnected={hasOAuthConnected} />
+
+        {/* Score-Based Urgency Alerts */}
+        <ScoreAlertNudges score={mockUserScore.overall} scoreHistory={mockScoreHistory} />
 
         {/* Top Row: Score + Dimensions */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

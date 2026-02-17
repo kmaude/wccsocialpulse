@@ -108,6 +108,18 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
             </div>
           ))}
 
+          {/* Competitor Gap Alerts */}
+          {visibleCompetitors
+            .filter((c) => c.score - userScore >= 15)
+            .map((c) => (
+              <div key={`alert-${c.name}`} className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                <p className="text-sm">
+                  <span className="text-destructive font-semibold">🔴 {c.name}</span> is outpacing you by{" "}
+                  <strong>{c.score - userScore} points</strong>. They're capturing visibility you're losing. See what they're doing differently in your monthly report.
+                </p>
+              </div>
+            ))}
+
           {/* Add Competitor */}
           {canAdd && (
             <Button variant="outline" className="w-full gap-2 border-dashed" onClick={() => setShowAddDialog(true)}>
