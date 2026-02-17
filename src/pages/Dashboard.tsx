@@ -9,6 +9,9 @@ import { ScoreDisclaimerBanner } from "@/components/dashboard/ScoreDisclaimerBan
 import { ContentPosts } from "@/components/dashboard/ContentPosts";
 import { CompetitorSection } from "@/components/dashboard/CompetitorSection";
 import { AIRecommendations } from "@/components/dashboard/AIRecommendations";
+import { FirstReportCard } from "@/components/dashboard/FirstReportCard";
+import { MonthlyReportPreview } from "@/components/dashboard/MonthlyReportPreview";
+import { PremiumComparisonTable } from "@/components/dashboard/PremiumComparisonTable";
 import { useAuth } from "@/hooks/useAuth";
 import {
   mockUserScore, mockDimensions, mockContentPosts, mockCompetitors,
@@ -34,6 +37,11 @@ const Dashboard = () => {
             Last updated: {new Date(mockUserScore.lastUpdated).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
+
+        {/* First Report Card (new users) */}
+        {planTier === "free" && (
+          <FirstReportCard signupDate={new Date().toISOString()} />
+        )}
 
         {/* Disclaimer Banner */}
         <ScoreDisclaimerBanner planTier={planTier} hasOAuthConnected={hasOAuthConnected} />
@@ -119,6 +127,19 @@ const Dashboard = () => {
 
         {/* AI Recommendations */}
         <AIRecommendations />
+
+        {/* Monthly Report Preview & Premium Comparison (Free users) */}
+        {planTier === "free" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MonthlyReportPreview
+              score={mockUserScore.overall}
+              scoreChange={mockUserScore.change}
+              dimensions={mockDimensions}
+              signupDate={new Date().toISOString()}
+            />
+            <PremiumComparisonTable />
+          </div>
+        )}
       </main>
 
       <Footer />
