@@ -28,9 +28,9 @@ export function Footer() {
           <div>
             <h4 className="font-display font-semibold mb-3 text-sm">Company</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><span className="cursor-default">About</span></li>
-              <li><span className="cursor-default">Blog</span></li>
-              <li><span className="cursor-default">Contact</span></li>
+              <li><a href="https://westcoastcontent.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">West Coast Content</a></li>
+              <li><span className="cursor-default">About Social Pulse</span></li>
+              <li><a href="mailto:hello@westcoastcontent.com" className="hover:text-foreground transition-colors">Contact</a></li>
             </ul>
           </div>
           <div>
@@ -42,7 +42,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-10 pt-6 border-t text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Social Pulse. All rights reserved.
+          © {new Date().getFullYear()} West Coast Content Company (DBA West Coast Content). All rights reserved.
         </div>
       </div>
     </footer>
