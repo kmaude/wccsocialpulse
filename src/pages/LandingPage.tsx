@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BarChart3, Eye, Zap, Shield, TrendingUp, Target, Check, Search } from "lucide-react";
+import { ArrowRight, BarChart3, Eye, Zap, Shield, TrendingUp, Target, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { VisibilityScoreGauge } from "@/components/dashboard/VisibilityScoreGauge";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
+import { PlatformHandleForm, type PlatformHandles } from "@/components/PlatformHandleForm";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { getScoreTier, getScoreColor } from "@/data/mockScoreData";
@@ -55,18 +55,15 @@ const PRICING = [
 ];
 
 const LandingPage = () => {
-  const [handle, setHandle] = useState("");
   const [scanning, setScanning] = useState(false);
   const [demoScore, setDemoScore] = useState<number | null>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [submittedHandles, setSubmittedHandles] = useState<PlatformHandles | null>(null);
   const { toast } = useToast();
   const { session } = useAuth();
 
-  const handleScan = () => {
-    if (!handle.trim()) {
-      toast({ title: "Enter a handle", description: "Please enter a social media handle or URL to scan.", variant: "destructive" });
-      return;
-    }
+  const handleScan = (handles: PlatformHandles) => {
+    setSubmittedHandles(handles);
     setScanning(true);
     setDemoScore(null);
     setTimeout(() => {
@@ -97,28 +94,8 @@ const LandingPage = () => {
             </p>
 
             {/* Scan Form */}
-            <div className="max-w-md mx-auto pt-4">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="@yourbrand or paste a URL"
-                    value={handle}
-                    onChange={(e) => setHandle(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleScan()}
-                    className="pl-9 h-12 text-base"
-                  />
-                </div>
-                <Button
-                  onClick={handleScan}
-                  disabled={scanning}
-                  className="h-12 px-6 bg-gradient-hero text-primary-foreground hover:opacity-90"
-                >
-                  {scanning ? "Scanning..." : "Free Scan"}
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">No signup required. See your score in seconds.</p>
+            <div className="max-w-lg mx-auto pt-4">
+              <PlatformHandleForm onSubmit={handleScan} scanning={scanning} />
             </div>
           </div>
 
@@ -134,7 +111,7 @@ const LandingPage = () => {
                         <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
                         <Eye className="h-8 w-8 text-primary animate-pulse" />
                       </div>
-                      <p className="text-sm text-muted-foreground animate-pulse">Analyzing {handle}...</p>
+                      <p className="text-sm text-muted-foreground animate-pulse">Analyzing your profiles...</p>
                     </div>
                   ) : demoScore !== null ? (
                     <div className="space-y-4">
@@ -274,6 +251,7 @@ const LandingPage = () => {
           open={emailModalOpen}
           onOpenChange={setEmailModalOpen}
           score={demoScore}
+          handles={submittedHandles}
         />
       )}
     </div>
