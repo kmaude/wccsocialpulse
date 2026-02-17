@@ -1,13 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Instagram, Facebook, Youtube } from "lucide-react";
+
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.75a8.18 8.18 0 0 0 3.76.92V6.69Z" />
+  </svg>
+);
 
 const PLATFORMS = [
-  { key: "instagram", label: "Instagram", prefix: "@", placeholder: "yourbrand" },
-  { key: "facebook", label: "Facebook", prefix: "fb.com/", placeholder: "yourbrand" },
-  { key: "youtube", label: "YouTube", prefix: "@", placeholder: "yourbrand" },
-  { key: "tiktok", label: "TikTok", prefix: "@", placeholder: "yourbrand" },
+  { key: "instagram", icon: Instagram, placeholder: "@yourbrand" },
+  { key: "facebook", icon: Facebook, placeholder: "yourbrand" },
+  { key: "youtube", icon: Youtube, placeholder: "@yourbrand" },
+  { key: "tiktok", icon: TikTokIcon, placeholder: "@yourbrand" },
 ] as const;
 
 export type PlatformHandles = {
@@ -60,15 +66,13 @@ export function PlatformHandleForm({ onSubmit, scanning }: PlatformHandleFormPro
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {PLATFORMS.map((p) => (
           <div key={p.key} className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground select-none pointer-events-none">
-              {p.label}
-            </span>
+            <p.icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={handles[p.key]}
               onChange={(e) => updateHandle(p.key, e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder={p.placeholder}
-              className="pl-24 h-11 text-sm"
+              className="pl-10 h-11 text-sm"
             />
           </div>
         ))}
