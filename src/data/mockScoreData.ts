@@ -21,6 +21,7 @@ export interface CompetitorData {
   name: string;
   score: number;
   change: number;
+  source: "ai_suggested" | "manual";
 }
 
 export const mockUserScore = {
@@ -48,10 +49,10 @@ export const mockContentPosts: ContentPost[] = [
 ];
 
 export const mockCompetitors: CompetitorData[] = [
-  { name: "Competitor A", score: 78, change: +3 },
-  { name: "Competitor B", score: 61, change: -2 },
-  { name: "Competitor C", score: 55, change: +1 },
-  { name: "Competitor D", score: 42, change: -5 },
+  { name: "Competitor A", score: 78, change: +3, source: "ai_suggested" },
+  { name: "Competitor B", score: 61, change: -2, source: "manual" },
+  { name: "Competitor C", score: 55, change: +1, source: "ai_suggested" },
+  { name: "Competitor D", score: 42, change: -5, source: "manual" },
 ];
 
 export const mockScoreHistory = [
