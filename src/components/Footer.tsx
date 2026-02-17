@@ -1,0 +1,50 @@
+import { Activity } from "lucide-react";
+import { Link } from "react-router-dom";
+
+export function Footer() {
+  return (
+    <footer className="border-t bg-card">
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="space-y-3">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-hero">
+                <Activity className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <span className="font-display text-lg font-bold">Social Pulse</span>
+            </Link>
+            <p className="text-sm text-muted-foreground">
+              The visibility intelligence engine for brands that refuse to be invisible.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-display font-semibold mb-3 text-sm">Product</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><Link to="/" className="hover:text-foreground transition-colors">Free Scan</Link></li>
+              <li><Link to="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link></li>
+              <li><span className="cursor-default">Pricing</span></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-display font-semibold mb-3 text-sm">Company</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><span className="cursor-default">About</span></li>
+              <li><span className="cursor-default">Blog</span></li>
+              <li><span className="cursor-default">Contact</span></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-display font-semibold mb-3 text-sm">Legal</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li><span className="cursor-default">Privacy</span></li>
+              <li><span className="cursor-default">Terms</span></li>
+            </ul>
+          </div>
+        </div>
+        <div className="mt-10 pt-6 border-t text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Social Pulse. All rights reserved.
+        </div>
+      </div>
+    </footer>
+  );
+}
