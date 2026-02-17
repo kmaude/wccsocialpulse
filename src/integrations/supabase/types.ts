@@ -157,7 +157,9 @@ export type Database = {
           business_name: string | null
           created_at: string
           email: string | null
+          facebook_handle: string | null
           id: string
+          instagram_handle: string | null
           last_email_opened_at: string | null
           last_login: string | null
           marketing_consent: boolean
@@ -165,16 +167,20 @@ export type Database = {
           plan_tier: Database["public"]["Enums"]["plan_tier"]
           stripe_customer_id: string | null
           subscription_status: string | null
+          tiktok_handle: string | null
           tos_accepted_at: string | null
           tos_version_id: string | null
           updated_at: string
           vertical: Database["public"]["Enums"]["vertical_type"] | null
+          youtube_handle: string | null
         }
         Insert: {
           business_name?: string | null
           created_at?: string
           email?: string | null
+          facebook_handle?: string | null
           id: string
+          instagram_handle?: string | null
           last_email_opened_at?: string | null
           last_login?: string | null
           marketing_consent?: boolean
@@ -182,16 +188,20 @@ export type Database = {
           plan_tier?: Database["public"]["Enums"]["plan_tier"]
           stripe_customer_id?: string | null
           subscription_status?: string | null
+          tiktok_handle?: string | null
           tos_accepted_at?: string | null
           tos_version_id?: string | null
           updated_at?: string
           vertical?: Database["public"]["Enums"]["vertical_type"] | null
+          youtube_handle?: string | null
         }
         Update: {
           business_name?: string | null
           created_at?: string
           email?: string | null
+          facebook_handle?: string | null
           id?: string
+          instagram_handle?: string | null
           last_email_opened_at?: string | null
           last_login?: string | null
           marketing_consent?: boolean
@@ -199,10 +209,12 @@ export type Database = {
           plan_tier?: Database["public"]["Enums"]["plan_tier"]
           stripe_customer_id?: string | null
           subscription_status?: string | null
+          tiktok_handle?: string | null
           tos_accepted_at?: string | null
           tos_version_id?: string | null
           updated_at?: string
           vertical?: Database["public"]["Enums"]["vertical_type"] | null
+          youtube_handle?: string | null
         }
         Relationships: []
       }

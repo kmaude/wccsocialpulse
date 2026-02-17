@@ -7,13 +7,15 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { PlatformHandles } from "@/components/PlatformHandleForm";
 
 export function EmailCaptureModal({
-  open, onOpenChange, score,
+  open, onOpenChange, score, handles,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   score: number;
+  handles?: PlatformHandles | null;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,15 +33,32 @@ export function EmailCaptureModal({
       return;
     }
     setSending(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin + "/onboarding" },
+      options: {
+        emailRedirectTo: window.location.origin + "/onboarding",
+        data: {
+          instagram_handle: handles?.instagram || null,
+          facebook_handle: handles?.facebook || null,
+          youtube_handle: handles?.youtube || null,
+          tiktok_handle: handles?.tiktok || null,
+        },
+      },
     });
     setSending(false);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      // Save handles to profile if user was created
+      if (data.user && handles) {
+        await supabase.from("profiles").update({
+          instagram_handle: handles.instagram || null,
+          facebook_handle: handles.facebook || null,
+          youtube_handle: handles.youtube || null,
+          tiktok_handle: handles.tiktok || null,
+        }).eq("id", data.user.id);
+      }
       setSent(true);
     }
   };
