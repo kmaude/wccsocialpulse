@@ -8,22 +8,9 @@ import { getScoreTier, getScoreColor } from "@/data/mockScoreData";
 
 interface ScanResultsCardProps {
   score: number;
+  scanData: any;
   session: any;
   onEmailCapture: () => void;
-}
-
-// Generate mock sub-scores based on overall score
-function generateSubScores(overall: number) {
-  const jitter = (base: number, range: number) =>
-    Math.max(0, Math.min(100, base + Math.floor(Math.random() * range * 2 - range)));
-  return {
-    velocity: jitter(overall - 5, 12),
-    recency: jitter(overall - 8, 15),
-    video: jitter(overall + 3, 10),
-    engagement: jitter(overall, 10),
-    competitor: jitter(overall - 10, 12),
-    coverage: jitter(overall + 5, 10),
-  };
 }
 
 const DIMENSIONS = [
@@ -53,11 +40,10 @@ function getPercentile(score: number): number {
   return Math.min(rounded, 95);
 }
 
-export function ScanResultsCard({ score, session, onEmailCapture }: ScanResultsCardProps) {
-  // Generate stable sub-scores (in real app these come from backend)
-  const subs = generateSubScores(score);
+export function ScanResultsCard({ score, scanData, session, onEmailCapture }: ScanResultsCardProps) {
+  const subs = scanData?.sub_scores || { velocity: 0, recency: 0, video: 0, engagement: 0, competitor: 0, coverage: 0 };
   const percentile = getPercentile(score);
-  const insight = getAIInsight(score, subs.velocity, subs.recency);
+  const insight = scanData?.ai_insight || getAIInsight(score, subs.velocity, subs.recency);
   const scoreColor = getScoreColor(score);
 
   return (
@@ -76,6 +62,21 @@ export function ScanResultsCard({ score, session, onEmailCapture }: ScanResultsC
             <p className="text-sm text-muted-foreground">
               You're less visible than ~{percentile}% of brands in your space.
             </p>
+            {scanData?.platforms && (
+              <div className="flex items-center justify-center gap-2 mt-2">
+                {Object.entries(scanData.platforms).map(([platform, info]: [string, any]) => (
+                  info.available ? (
+                    <Badge key={platform} variant="outline" className="text-xs capitalize gap-1 border-green-500/30 text-green-600">
+                      ✓ {platform}
+                    </Badge>
+                  ) : info.error !== "Not provided" ? (
+                    <Badge key={platform} variant="outline" className="text-xs capitalize gap-1 border-destructive/30 text-destructive">
+                      ✗ {platform}
+                    </Badge>
+                  ) : null
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 1B: Mini Dimension Bars */}
@@ -84,7 +85,7 @@ export function ScanResultsCard({ score, session, onEmailCapture }: ScanResultsC
               Dimension Breakdown
             </p>
             {DIMENSIONS.map((dim) => {
-              const value = subs[dim.key];
+              const value = subs[dim.key] ?? 0;
               const barColor = dim.locked ? "hsl(var(--muted-foreground))" : getScoreColor(value);
               return (
                 <div key={dim.key} className="relative">
