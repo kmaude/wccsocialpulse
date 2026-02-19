@@ -11,6 +11,7 @@ import { PlatformHandleForm, type PlatformHandles } from "@/components/PlatformH
 import { ScanResultsCard } from "@/components/landing/ScanResultsCard";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const FEATURES = [
   { icon: Eye, title: "Visibility Score", desc: "One 0–100 number that captures your brand's entire social presence." },
@@ -58,17 +59,45 @@ const LandingPage = () => {
   const [demoScore, setDemoScore] = useState<number | null>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [submittedHandles, setSubmittedHandles] = useState<PlatformHandles | null>(null);
+  const [scanData, setScanData] = useState<any>(null);
   const { toast } = useToast();
   const { session } = useAuth();
 
-  const handleScan = (handles: PlatformHandles) => {
+  const handleScan = async (handles: PlatformHandles) => {
     setSubmittedHandles(handles);
     setScanning(true);
     setDemoScore(null);
-    setTimeout(() => {
+    setScanData(null);
+
+    try {
+      const igHandle = handles.instagram?.trim();
+      if (igHandle) {
+        const { data, error } = await supabase.functions.invoke("instagram-stats", {
+          body: { handle: igHandle },
+        });
+        if (error) throw error;
+        if (data?.success && data?.data) {
+          const profile = data.data;
+          setScanData(profile);
+
+          // Score based on real API data: quality score, engagement rate, followers
+          const qualityComponent = (profile.qualityScore || 0) * 40; // 0-40 pts
+          const engagementComponent = Math.min((profile.avgEngagementRate || 0) * 5000, 30); // 0-30 pts
+          const followerComponent = Math.min(Math.log10(Math.max(profile.followers || 1, 1)) / 9 * 30, 30); // 0-30 pts
+
+          const score = Math.round(Math.max(10, Math.min(100, qualityComponent + engagementComponent + followerComponent)));
+          setDemoScore(score);
+          setScanning(false);
+          return;
+        }
+      }
       setDemoScore(Math.floor(Math.random() * 40) + 35);
-      setScanning(false);
-    }, 2500);
+    } catch (err: any) {
+      console.error("Instagram scan error:", err);
+      toast({ title: "Scan notice", description: "Using estimated data. Connect your account for precise scores.", variant: "default" });
+      setDemoScore(Math.floor(Math.random() * 40) + 35);
+    }
+    setScanning(false);
   };
 
   return (
