@@ -1,6 +1,9 @@
-import { ArrowRight, Check, X } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Check, X, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const COMPARISON_ROWS = [
   { feature: "Report frequency", free: "Monthly", premium: "Weekly" },
@@ -20,6 +23,24 @@ function CellValue({ value }: { value: string | boolean }) {
 }
 
 export function PremiumComparisonTable() {
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout");
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Could not start checkout", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -50,8 +71,16 @@ export function PremiumComparisonTable() {
             </tbody>
           </table>
         </div>
-        <Button className="w-full mt-6 bg-gradient-hero text-primary-foreground hover:opacity-90">
-          Start Premium — $29/month <ArrowRight className="ml-1 h-4 w-4" />
+        <Button
+          onClick={handleUpgrade}
+          disabled={loading}
+          className="w-full mt-6 bg-gradient-hero text-primary-foreground hover:opacity-90"
+        >
+          {loading ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</>
+          ) : (
+            <>Start Premium — $29/month <ArrowRight className="ml-1 h-4 w-4" /></>
+          )}
         </Button>
       </CardContent>
     </Card>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,6 +23,7 @@ type AuthContextType = {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  checkSubscription: () => Promise<void>;
   hasCompletedOnboarding: boolean;
 };
 
@@ -57,6 +58,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await fetchProfile(user.id);
     }
   };
+
+  const checkSubscription = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (!error && data?.subscribed !== undefined) {
+        // Refresh profile to pick up synced plan_tier
+        if (user) await fetchProfile(user.id);
+      }
+    } catch (e) {
+      console.error("Subscription check failed:", e);
+    }
+  }, [user]);
 
   useEffect(() => {
     // Set up auth state listener BEFORE getSession
@@ -105,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, user, profile, isAdmin, loading, signOut, refreshProfile, hasCompletedOnboarding }}
+      value={{ session, user, profile, isAdmin, loading, signOut, refreshProfile, checkSubscription, hasCompletedOnboarding }}
     >
       {children}
     </AuthContext.Provider>

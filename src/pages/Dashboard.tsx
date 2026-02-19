@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { ScoreAlertNudges } from "@/components/dashboard/ScoreAlertNudges";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,6 +17,7 @@ import { MonthlyReportPreview } from "@/components/dashboard/MonthlyReportPrevie
 import { PremiumComparisonTable } from "@/components/dashboard/PremiumComparisonTable";
 import { SetPasswordCard } from "@/components/dashboard/SetPasswordCard";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import {
   mockUserScore, mockDimensions, mockContentPosts, mockCompetitors,
   mockScoreHistory, getScoreColor, getScoreTier, getScoreBgClass,
@@ -22,10 +25,21 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const Dashboard = () => {
-  const { profile } = useAuth();
+  const { profile, checkSubscription } = useAuth();
+  const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const planTier = profile?.plan_tier ?? "free";
   // Mock: no OAuth connected for now
   const hasOAuthConnected = false;
+
+  // Check subscription status on mount and after successful upgrade
+  useEffect(() => {
+    checkSubscription();
+    if (searchParams.get("upgrade") === "success") {
+      toast({ title: "Welcome to Premium! 🎉", description: "Your subscription is now active." });
+      setSearchParams({});
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
