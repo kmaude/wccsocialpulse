@@ -19,20 +19,32 @@ import { SetPasswordCard } from "@/components/dashboard/SetPasswordCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  mockUserScore, mockDimensions, mockContentPosts, mockCompetitors,
-  mockScoreHistory, getScoreColor, getScoreTier, getScoreBgClass,
-} from "@/data/mockScoreData";
+  useLatestScore, usePreviousScore, useScoreHistory,
+  useUserPosts, useUserCompetitors, dimensionsFromSubScores,
+} from "@/hooks/useDashboardData";
+import { getScoreBgClass, getScoreTier } from "@/data/mockScoreData";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const { profile, checkSubscription } = useAuth();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const planTier = profile?.plan_tier ?? "free";
-  // Mock: no OAuth connected for now
   const hasOAuthConnected = false;
 
-  // Check subscription status on mount and after successful upgrade
+  const { score: latestScore, isLoading: scoreLoading } = useLatestScore();
+  const previousScore = usePreviousScore();
+  const scoreHistory = useScoreHistory();
+  const posts = useUserPosts();
+  const competitors = useUserCompetitors();
+
+  const overall = latestScore?.overall ?? 0;
+  const change = previousScore != null ? overall - previousScore : 0;
+  const subScores = latestScore?.sub_scores as Record<string, number | null> | null;
+  const dimensions = dimensionsFromSubScores(subScores);
+  const lastUpdated = latestScore?.created_at ?? new Date().toISOString();
+
   useEffect(() => {
     checkSubscription();
     if (searchParams.get("upgrade") === "success") {
@@ -50,12 +62,12 @@ const Dashboard = () => {
         <div>
           <h1 className="font-display text-2xl font-bold">Your Visibility Report</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Last updated: {new Date(mockUserScore.lastUpdated).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+            Last updated: {new Date(lastUpdated).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
 
-        {/* First Report Card (new users) */}
-        {planTier === "free" && (
+        {/* First Report Card (new users with no score) */}
+        {planTier === "free" && !latestScore && !scoreLoading && (
           <FirstReportCard signupDate={new Date().toISOString()} />
         )}
 
@@ -63,27 +75,33 @@ const Dashboard = () => {
         <ScoreDisclaimerBanner planTier={planTier} hasOAuthConnected={hasOAuthConnected} />
 
         {/* Score-Based Urgency Alerts */}
-        <ScoreAlertNudges score={mockUserScore.overall} scoreHistory={mockScoreHistory} />
+        <ScoreAlertNudges score={overall} scoreHistory={scoreHistory} />
 
         {/* Top Row: Score + Dimensions */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1 shadow-glow border-primary/10">
             <CardContent className="flex flex-col items-center py-8 space-y-4">
-              <VisibilityScoreGauge score={mockUserScore.overall} />
+              {scoreLoading ? (
+                <Skeleton className="h-32 w-32 rounded-full" />
+              ) : (
+                <VisibilityScoreGauge score={overall} />
+              )}
               <div className="text-center">
-                <Badge className={`${getScoreBgClass(mockUserScore.overall)} text-primary-foreground border-0 text-sm px-3 py-1`}>
-                  {getScoreTier(mockUserScore.overall)}
+                <Badge className={`${getScoreBgClass(overall)} text-primary-foreground border-0 text-sm px-3 py-1`}>
+                  {getScoreTier(overall)}
                 </Badge>
-                <div className="flex items-center justify-center gap-1.5 mt-3">
-                  {mockUserScore.change > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-score-visible" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 text-destructive" />
-                  )}
-                  <span className={`text-sm font-medium ${mockUserScore.change > 0 ? "text-score-visible" : "text-destructive"}`}>
-                    {mockUserScore.change > 0 ? "+" : ""}{mockUserScore.change} pts this month
-                  </span>
-                </div>
+                {latestScore && (
+                  <div className="flex items-center justify-center gap-1.5 mt-3">
+                    {change >= 0 ? (
+                      <TrendingUp className="h-4 w-4 text-score-visible" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-destructive" />
+                    )}
+                    <span className={`text-sm font-medium ${change >= 0 ? "text-score-visible" : "text-destructive"}`}>
+                      {change >= 0 ? "+" : ""}{change} pts since last scan
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -94,7 +112,7 @@ const Dashboard = () => {
               <CardDescription>Your visibility measured across 6 dimensions</CardDescription>
             </CardHeader>
             <CardContent>
-              <DimensionBreakdown dimensions={mockDimensions} />
+              <DimensionBreakdown dimensions={dimensions} />
             </CardContent>
           </Card>
         </div>
@@ -104,45 +122,51 @@ const Dashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle className="font-display text-lg">Score Trend</CardTitle>
-              <CardDescription>Your visibility over the past 6 months</CardDescription>
+              <CardDescription>Your visibility over recent scans</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={mockScoreHistory}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-                    <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="score"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2.5}
-                      dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              {scoreHistory.length > 1 ? (
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={scoreHistory}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                      <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2.5}
+                        dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  Score trend will appear after your second scan.
+                </p>
+              )}
             </CardContent>
           </Card>
 
           <CompetitorSection
-            userScore={mockUserScore.overall}
-            competitors={mockCompetitors}
+            userScore={overall}
+            competitors={competitors}
             planTier={planTier}
           />
         </div>
 
         {/* Content Performance */}
-        <ContentPosts posts={mockContentPosts} planTier={planTier} />
+        <ContentPosts posts={posts} planTier={planTier} />
 
         {/* AI Recommendations */}
         <AIRecommendations />
@@ -151,9 +175,9 @@ const Dashboard = () => {
         {planTier === "free" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MonthlyReportPreview
-              score={mockUserScore.overall}
-              scoreChange={mockUserScore.change}
-              dimensions={mockDimensions}
+              score={overall}
+              scoreChange={change}
+              dimensions={dimensions}
               signupDate={new Date().toISOString()}
             />
             <PremiumComparisonTable />
