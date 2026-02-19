@@ -13,6 +13,10 @@ type Profile = {
   tos_accepted_at: string | null;
   tos_version_id: string | null;
   has_password: boolean;
+  instagram_handle: string | null;
+  facebook_handle: string | null;
+  youtube_handle: string | null;
+  tiktok_handle: string | null;
 };
 
 type AuthContextType = {
@@ -39,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, name, business_name, email, vertical, plan_tier, marketing_consent, tos_accepted_at, tos_version_id, has_password")
+      .select("id, name, business_name, email, vertical, plan_tier, marketing_consent, tos_accepted_at, tos_version_id, has_password, instagram_handle, facebook_handle, youtube_handle, tiktok_handle")
       .eq("id", userId)
       .single();
     setProfile(data);

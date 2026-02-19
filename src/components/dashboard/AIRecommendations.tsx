@@ -8,7 +8,13 @@ const MOCK_RECOMMENDATIONS = [
   "Your top competitor is outpacing you by 2.3 posts per week. Match their velocity to close the Competitor Gap dimension.",
 ];
 
-export function AIRecommendations() {
+interface AIRecommendationsProps {
+  recommendations?: string[];
+}
+
+export function AIRecommendations({ recommendations }: AIRecommendationsProps) {
+  const recs = recommendations && recommendations.length > 0 ? recommendations : MOCK_RECOMMENDATIONS;
+
   return (
     <Card>
       <CardHeader>
@@ -23,7 +29,7 @@ export function AIRecommendations() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {MOCK_RECOMMENDATIONS.map((rec, i) => (
+        {recs.map((rec, i) => (
           <div
             key={i}
             className="flex gap-4 p-4 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors"
