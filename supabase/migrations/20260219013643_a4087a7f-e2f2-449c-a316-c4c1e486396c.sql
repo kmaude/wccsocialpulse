@@ -1,0 +1,1 @@
+ALTER TABLE public.competitor_profiles ADD CONSTRAINT competitor_profiles_platform_handle_unique UNIQUE (platform, handle);

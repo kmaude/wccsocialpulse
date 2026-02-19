@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Sparkles, Plus, Search, Check, X } from "lucide-react";
+import { Sparkles, Plus, Search, Check, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getScoreColor } from "@/data/mockScoreData";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Competitor {
   name: string;
@@ -20,15 +24,9 @@ interface CandidateProfile {
   displayName: string;
   platform: string;
   followers: number;
+  avatarUrl: string;
   bio: string;
-  avatar: string;
 }
-
-const MOCK_CANDIDATES: CandidateProfile[] = [
-  { handle: "@freshbites_co", displayName: "Fresh Bites Co.", platform: "Instagram", followers: 24300, bio: "Organic snacks • Plant-based goodness 🌱", avatar: "F" },
-  { handle: "@freshbites", displayName: "FreshBites Official", platform: "TikTok", followers: 18700, bio: "Snack videos & recipes", avatar: "F" },
-  { handle: "@fresh_bites_brand", displayName: "Fresh Bites Brand", platform: "YouTube", followers: 9200, bio: "Weekly snack reviews and unboxings", avatar: "F" },
-];
 
 interface Props {
   userScore: number;
@@ -37,27 +35,85 @@ interface Props {
 }
 
 export function CompetitorSection({ userScore, competitors, planTier }: Props) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showCandidates, setShowCandidates] = useState(false);
-  const [confirmed, setConfirmed] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<CandidateProfile[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const maxCompetitors = planTier === "premium" ? 10 : 2;
   const visibleCompetitors = competitors.slice(0, maxCompetitors);
   const canAdd = visibleCompetitors.length < maxCompetitors;
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) setShowCandidates(true);
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    setCandidates([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("search-competitor", {
+        body: { query: searchQuery.trim() },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setCandidates(
+          data.candidates.map((c: any) => ({
+            handle: c.handle,
+            displayName: c.display_name,
+            platform: c.platform.charAt(0).toUpperCase() + c.platform.slice(1),
+            followers: c.follower_count || 0,
+            avatarUrl: c.avatar_url || "",
+            bio: c.bio || "",
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Competitor search error:", err);
+      toast({ title: "Search failed", description: "Could not search for competitors. Try again.", variant: "destructive" });
+    }
+    setSearching(false);
   };
 
-  const handleConfirm = (handle: string) => {
-    setConfirmed(handle);
-    setTimeout(() => {
+  const handleConfirmCompetitor = async (candidate: CandidateProfile) => {
+    if (!user?.id) return;
+    setConfirming(candidate.handle);
+    try {
+      const { data: cp, error: cpErr } = await supabase
+        .from("competitor_profiles")
+        .upsert(
+          {
+            platform: candidate.platform.toLowerCase() as any,
+            handle: candidate.handle,
+            display_name: candidate.displayName,
+            follower_count: candidate.followers,
+            scan_data: { bio: candidate.bio, avatar_url: candidate.avatarUrl },
+          },
+          { onConflict: "platform,handle" }
+        )
+        .select()
+        .single();
+
+      if (cpErr) throw cpErr;
+
+      await supabase.from("user_competitors").insert({
+        user_id: user.id,
+        competitor_profile_id: cp.id,
+        source: "manual" as const,
+        confirmed: true,
+      });
+
+      toast({ title: "Competitor added!", description: `${candidate.displayName} is now being tracked.` });
       setShowAddDialog(false);
       setSearchQuery("");
-      setShowCandidates(false);
-      setConfirmed(null);
-    }, 1200);
+      setCandidates([]);
+      queryClient.invalidateQueries({ queryKey: ["userCompetitors"] });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to add competitor.", variant: "destructive" });
+    }
+    setConfirming(null);
   };
 
   return (
@@ -84,7 +140,7 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
           {visibleCompetitors.map((c) => (
             <div key={c.name} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-sm font-medium">
-                {c.name.charAt(c.name.length - 1)}
+                {c.name.charAt(0)}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -115,7 +171,7 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
               <div key={`alert-${c.name}`} className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                 <p className="text-sm">
                   <span className="text-destructive font-semibold">🔴 {c.name}</span> is outpacing you by{" "}
-                  <strong>{c.score - userScore} points</strong>. They're capturing visibility you're losing. See what they're doing differently in your monthly report.
+                  <strong>{c.score - userScore} points</strong>. They're capturing visibility you're losing.
                 </p>
               </div>
             ))}
@@ -145,44 +201,52 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
 
           <div className="flex gap-2">
             <Input
-              placeholder="Search business name..."
+              placeholder="Search business name or handle..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setShowCandidates(false); }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
-            <Button onClick={handleSearch} size="icon" variant="outline">
-              <Search className="h-4 w-4" />
+            <Button onClick={handleSearch} size="icon" variant="outline" disabled={searching}>
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             </Button>
           </div>
 
-          {showCandidates && (
+          {candidates.length > 0 ? (
             <div className="space-y-2 mt-2">
               <p className="text-xs text-muted-foreground font-medium">Matching profiles:</p>
-              {MOCK_CANDIDATES.map((c) => (
-                <div key={c.handle} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${confirmed === c.handle ? "border-emerald-500 bg-emerald-500/5" : "hover:border-primary/20"}`}>
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-bold">
-                    {c.avatar}
-                  </div>
+              {candidates.map((c) => (
+                <div key={`${c.platform}-${c.handle}`} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${confirming === c.handle ? "border-emerald-500 bg-emerald-500/5" : "hover:border-primary/20"}`}>
+                  {c.avatarUrl ? (
+                    <img src={c.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover bg-muted" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-bold">
+                      {c.displayName.charAt(0)}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold truncate">{c.displayName}</span>
                       <Badge variant="outline" className="text-[10px] shrink-0">{c.platform}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">{c.handle} • {c.followers.toLocaleString()} followers</p>
-                    <p className="text-xs text-muted-foreground truncate">{c.bio}</p>
+                    <p className="text-xs text-muted-foreground">@{c.handle} • {c.followers.toLocaleString()} followers</p>
+                    {c.bio && <p className="text-xs text-muted-foreground truncate">{c.bio}</p>}
                   </div>
                   <Button
                     size="sm"
-                    variant={confirmed === c.handle ? "default" : "outline"}
-                    className={confirmed === c.handle ? "bg-emerald-500 hover:bg-emerald-600" : ""}
-                    onClick={() => handleConfirm(c.handle)}
-                    disabled={confirmed !== null}
+                    variant={confirming === c.handle ? "default" : "outline"}
+                    className={confirming === c.handle ? "bg-emerald-500 hover:bg-emerald-600" : ""}
+                    onClick={() => handleConfirmCompetitor(c)}
+                    disabled={confirming !== null}
                   >
-                    {confirmed === c.handle ? <Check className="h-4 w-4" /> : "Confirm"}
+                    {confirming === c.handle ? <Check className="h-4 w-4" /> : "Confirm"}
                   </Button>
                 </div>
               ))}
             </div>
+          ) : searching ? null : (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Search to find competitors across Instagram, YouTube, TikTok, and Facebook.
+            </p>
           )}
         </DialogContent>
       </Dialog>
