@@ -70,32 +70,31 @@ const LandingPage = () => {
     setScanData(null);
 
     try {
-      const igHandle = handles.instagram?.trim();
-      if (igHandle) {
-        const { data, error } = await supabase.functions.invoke("instagram-stats", {
-          body: { handle: igHandle },
-        });
-        if (error) throw error;
-        if (data?.success && data?.data) {
-          const profile = data.data;
-          setScanData(profile);
-
-          // Score based on real API data: quality score, engagement rate, followers
-          const qualityComponent = (profile.qualityScore || 0) * 40; // 0-40 pts
-          const engagementComponent = Math.min((profile.avgEngagementRate || 0) * 5000, 30); // 0-30 pts
-          const followerComponent = Math.min(Math.log10(Math.max(profile.followers || 1, 1)) / 9 * 30, 30); // 0-30 pts
-
-          const score = Math.round(Math.max(10, Math.min(100, qualityComponent + engagementComponent + followerComponent)));
-          setDemoScore(score);
-          setScanning(false);
-          return;
-        }
+      const { data, error } = await supabase.functions.invoke("scan-profile", {
+        body: {
+          instagram: handles.instagram || null,
+          facebook: handles.facebook || null,
+          youtube: handles.youtube || null,
+          tiktok: handles.tiktok || null,
+          user_id: session?.user?.id || null,
+        },
+      });
+      if (error) throw error;
+      if (data?.success && data?.score) {
+        setDemoScore(data.score.overall);
+        setScanData(data.score);
+      } else {
+        throw new Error(data?.error || "Scan failed");
       }
-      setDemoScore(Math.floor(Math.random() * 40) + 35);
     } catch (err: any) {
-      console.error("Instagram scan error:", err);
-      toast({ title: "Scan notice", description: "Using estimated data. Connect your account for precise scores.", variant: "default" });
-      setDemoScore(Math.floor(Math.random() * 40) + 35);
+      console.error("Scan error:", err);
+      const msg = err?.message || "";
+      if (msg.includes("Rate limit")) {
+        toast({ title: "Too many scans", description: "Please wait a few minutes before scanning again.", variant: "destructive" });
+      } else {
+        toast({ title: "Scan failed", description: "We couldn't analyze those profiles. Please check the handles and try again.", variant: "destructive" });
+      }
+      setDemoScore(null);
     }
     setScanning(false);
   };
@@ -147,6 +146,7 @@ const LandingPage = () => {
           {!scanning && demoScore !== null && (
             <ScanResultsCard
               score={demoScore}
+              scanData={scanData}
               session={session}
               onEmailCapture={() => setEmailModalOpen(true)}
             />
