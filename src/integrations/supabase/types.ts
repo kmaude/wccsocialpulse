@@ -163,8 +163,12 @@ export type Database = {
           instagram_handle: string | null
           last_email_opened_at: string | null
           last_login: string | null
+          last_scan_at: string | null
           marketing_consent: boolean
           name: string | null
+          next_midcycle_date: string | null
+          next_monthly_report_date: string | null
+          next_weekly_report_date: string | null
           plan_tier: Database["public"]["Enums"]["plan_tier"]
           stripe_customer_id: string | null
           subscription_status: string | null
@@ -185,8 +189,12 @@ export type Database = {
           instagram_handle?: string | null
           last_email_opened_at?: string | null
           last_login?: string | null
+          last_scan_at?: string | null
           marketing_consent?: boolean
           name?: string | null
+          next_midcycle_date?: string | null
+          next_monthly_report_date?: string | null
+          next_weekly_report_date?: string | null
           plan_tier?: Database["public"]["Enums"]["plan_tier"]
           stripe_customer_id?: string | null
           subscription_status?: string | null
@@ -207,8 +215,12 @@ export type Database = {
           instagram_handle?: string | null
           last_email_opened_at?: string | null
           last_login?: string | null
+          last_scan_at?: string | null
           marketing_consent?: boolean
           name?: string | null
+          next_midcycle_date?: string | null
+          next_monthly_report_date?: string | null
+          next_weekly_report_date?: string | null
           plan_tier?: Database["public"]["Enums"]["plan_tier"]
           stripe_customer_id?: string | null
           subscription_status?: string | null
@@ -218,6 +230,24 @@ export type Database = {
           updated_at?: string
           vertical?: Database["public"]["Enums"]["vertical_type"] | null
           youtube_handle?: string | null
+        }
+        Relationships: []
+      }
+      scan_rate_limits: {
+        Row: {
+          ip: string
+          scan_count: number
+          window_start: string
+        }
+        Insert: {
+          ip: string
+          scan_count?: number
+          window_start?: string
+        }
+        Update: {
+          ip?: string
+          scan_count?: number
+          window_start?: string
         }
         Relationships: []
       }
