@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, AlertTriangle, BarChart3, Mail, Activity } from "lucide-react";
+import { Users, AlertTriangle, BarChart3, Mail, Activity, CreditCard } from "lucide-react";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { LeadSignalsTab } from "@/components/admin/LeadSignalsTab";
 import { BenchmarksTab } from "@/components/admin/BenchmarksTab";
@@ -7,6 +7,7 @@ import { EmailAnalytics } from "@/components/admin/EmailAnalytics";
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 import { InsightsList } from "@/components/admin/InsightsList";
 import { SystemHealthTab } from "@/components/admin/SystemHealthTab";
+import { PaymentsTab } from "@/components/admin/PaymentsTab";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
@@ -24,7 +25,7 @@ const AdminDashboard = () => {
 
       <main className="flex-1 container mx-auto px-4 py-6">
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-5">
+          <TabsList className="grid w-full max-w-3xl grid-cols-6">
             <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm">
               <Users className="h-4 w-4" /> <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
@@ -33,6 +34,9 @@ const AdminDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="benchmarks" className="gap-1.5 text-xs sm:text-sm">
               <BarChart3 className="h-4 w-4" /> <span className="hidden sm:inline">Benchmarks</span>
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="gap-1.5 text-xs sm:text-sm">
+              <CreditCard className="h-4 w-4" /> <span className="hidden sm:inline">Payments</span>
             </TabsTrigger>
             <TabsTrigger value="emails" className="gap-1.5 text-xs sm:text-sm">
               <Mail className="h-4 w-4" /> <span className="hidden sm:inline">Email Reports</span>
@@ -50,6 +54,9 @@ const AdminDashboard = () => {
           </TabsContent>
           <TabsContent value="benchmarks">
             <BenchmarksTab />
+          </TabsContent>
+          <TabsContent value="payments">
+            <PaymentsTab />
           </TabsContent>
           <TabsContent value="emails">
             <Tabs defaultValue="analytics" className="space-y-4">
