@@ -1,31 +1,22 @@
 import { useState } from "react";
-import { Sparkles, Plus, Search, Check, Loader2 } from "lucide-react";
+import { Sparkles, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getScoreColor } from "@/data/mockScoreData";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { AddCompetitorTabs, type CandidateProfile } from "./AddCompetitorTabs";
 
 interface Competitor {
   name: string;
   score: number;
   change: number;
   source: "ai_suggested" | "manual";
-}
-
-interface CandidateProfile {
-  handle: string;
-  displayName: string;
-  platform: string;
-  followers: number;
-  avatarUrl: string;
-  bio: string;
 }
 
 interface Props {
@@ -40,42 +31,11 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
   const queryClient = useQueryClient();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [candidates, setCandidates] = useState<CandidateProfile[]>([]);
-  const [searching, setSearching] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
 
   const maxCompetitors = planTier === "premium" ? 10 : 2;
   const visibleCompetitors = competitors.slice(0, maxCompetitors);
   const canAdd = visibleCompetitors.length < maxCompetitors;
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    setCandidates([]);
-    try {
-      const { data, error } = await supabase.functions.invoke("search-competitor", {
-        body: { query: searchQuery.trim() },
-      });
-      if (error) throw error;
-      if (data?.success) {
-        setCandidates(
-          data.candidates.map((c: any) => ({
-            handle: c.handle,
-            displayName: c.display_name,
-            platform: c.platform.charAt(0).toUpperCase() + c.platform.slice(1),
-            followers: c.follower_count || 0,
-            avatarUrl: c.avatar_url || "",
-            bio: c.bio || "",
-          }))
-        );
-      }
-    } catch (err) {
-      console.error("Competitor search error:", err);
-      toast({ title: "Search failed", description: "Could not search for competitors. Try again.", variant: "destructive" });
-    }
-    setSearching(false);
-  };
 
   const handleConfirmCompetitor = async (candidate: CandidateProfile) => {
     if (!user?.id) return;
@@ -107,8 +67,6 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
 
       toast({ title: "Competitor added!", description: `${candidate.displayName} is now being tracked.` });
       setShowAddDialog(false);
-      setSearchQuery("");
-      setCandidates([]);
       queryClient.invalidateQueries({ queryKey: ["userCompetitors"] });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add competitor.", variant: "destructive" });
@@ -196,58 +154,9 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Add Competitor</DialogTitle>
-            <DialogDescription>Search for a business to verify their profile before tracking.</DialogDescription>
+            <DialogDescription>Find a business by searching, pasting a social URL, or their website.</DialogDescription>
           </DialogHeader>
-
-          <div className="flex gap-2">
-            <Input
-              placeholder="Search business name or handle..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            />
-            <Button onClick={handleSearch} size="icon" variant="outline" disabled={searching}>
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            </Button>
-          </div>
-
-          {candidates.length > 0 ? (
-            <div className="space-y-2 mt-2 max-h-[50vh] overflow-y-auto">
-              <p className="text-xs text-muted-foreground font-medium sticky top-0 bg-background py-1">Matching profiles:</p>
-              {candidates.map((c) => (
-                <div key={`${c.platform}-${c.handle}`} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${confirming === c.handle ? "border-emerald-500 bg-emerald-500/5" : "hover:border-primary/20"}`}>
-                  {c.avatarUrl ? (
-                    <img src={c.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover bg-muted" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-bold">
-                      {c.displayName.charAt(0)}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold truncate">{c.displayName}</span>
-                      <Badge variant="outline" className="text-[10px] shrink-0">{c.platform}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">@{c.handle} • {c.followers.toLocaleString()} followers</p>
-                    {c.bio && <p className="text-xs text-muted-foreground truncate">{c.bio}</p>}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={confirming === c.handle ? "default" : "outline"}
-                    className={confirming === c.handle ? "bg-emerald-500 hover:bg-emerald-600" : ""}
-                    onClick={() => handleConfirmCompetitor(c)}
-                    disabled={confirming !== null}
-                  >
-                    {confirming === c.handle ? <Check className="h-4 w-4" /> : "Confirm"}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : searching ? null : (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Search to find competitors across Instagram, YouTube, TikTok, and Facebook.
-            </p>
-          )}
+          <AddCompetitorTabs onConfirm={handleConfirmCompetitor} confirming={confirming} />
         </DialogContent>
       </Dialog>
     </>
