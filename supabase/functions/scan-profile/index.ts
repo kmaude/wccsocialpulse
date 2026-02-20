@@ -65,39 +65,109 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
   const key = Deno.env.get("RAPIDAPI_KEY");
   if (!key) return { available: false, error: "RAPIDAPI_KEY not configured", followers: 0, posts: [] };
 
-  const url = `https://instagram-statistics-api.p.rapidapi.com/community?url=https://www.instagram.com/${handle}`;
-  const res = await fetch(url, {
-    headers: { "x-rapidapi-key": key, "x-rapidapi-host": "instagram-statistics-api.p.rapidapi.com" },
-  });
-  if (!res.ok) {
-    const t = await res.text();
-    return { available: false, error: `API ${res.status}: ${t.slice(0, 200)}`, followers: 0, posts: [] };
+  const host = "instagram-statistics-api.p.rapidapi.com";
+  const headers = { "x-rapidapi-key": key, "x-rapidapi-host": host };
+
+  // Step 1: Get profile data (followers, avgER, cid)
+  const profileUrl = `https://${host}/community?url=https://www.instagram.com/${handle}`;
+  const profileRes = await fetch(profileUrl, { headers });
+  if (!profileRes.ok) {
+    const t = await profileRes.text();
+    return { available: false, error: `API ${profileRes.status}: ${t.slice(0, 200)}`, followers: 0, posts: [] };
   }
-  const data = await res.json();
+  const profileData = await profileRes.json();
 
-  const followers = data?.usersCount || 0;
-  const collecting = data?.communityStatus === "COLLECTING";
-  const avgER = data?.avgER || 0;
-  const lastPosts = data?.lastPosts || [];
+  const followers = profileData?.usersCount || 0;
+  const collecting = profileData?.communityStatus === "COLLECTING";
+  const avgER = profileData?.avgER || 0;
+  const cid = profileData?.cid;
 
-  const posts: PostData[] = lastPosts.map((p: any, i: number) => {
-    const likes = p.likes || 0;
-    const comments = p.comments || 0;
-    const type = (p.type || "").toLowerCase().includes("video") || (p.type || "").toLowerCase().includes("reel") ? "reel" : p.type === "GraphSidecar" ? "carousel" : "image";
-    return {
-      platform: "instagram",
-      type,
-      content: (p.text || "").slice(0, 200),
-      likes,
-      comments,
-      views: null,
-      date: p.date ? new Date(p.date * 1000).toISOString() : new Date().toISOString(),
-      engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
-      external_id: `instagram_${p.id || i}`,
-    };
-  });
+  // Step 2: If we have cid, fetch full post history via Feed endpoint (last 8 weeks)
+  let posts: PostData[] = [];
 
-  return { available: true, collecting, followers, engagementRate: avgER, posts, raw: data };
+  if (cid && !collecting) {
+    try {
+      const now = new Date();
+      const eightWeeksAgo = new Date(now.getTime() - 56 * 24 * 60 * 60 * 1000);
+      
+      const fromDate = `${String(eightWeeksAgo.getDate()).padStart(2, '0')}.${String(eightWeeksAgo.getMonth() + 1).padStart(2, '0')}.${eightWeeksAgo.getFullYear()}`;
+      const toDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+
+      const feedUrl = `https://${host}/feed?cid=${encodeURIComponent(cid)}&from=${fromDate}&to=${toDate}&type=posts&sort=-date`;
+      console.log("Fetching Instagram feed:", feedUrl);
+      
+      const feedRes = await fetch(feedUrl, { headers });
+      if (feedRes.ok) {
+        const feedData = await feedRes.json();
+        const feedPosts = feedData?.posts || feedData?.data || [];
+        
+        if (Array.isArray(feedPosts) && feedPosts.length > 0) {
+          posts = feedPosts.slice(0, 50).map((p: any, i: number) => {
+            const likes = p.likes || 0;
+            const comments = p.comments || 0;
+            const views = p.views || p.videoViews || null;
+            
+            const rawType = (p.type || "").toLowerCase();
+            let type = "image";
+            if (rawType.includes("reel")) type = "reel";
+            else if (rawType.includes("video")) type = "video";
+            else if (rawType === "graphsidecar" || rawType.includes("carousel") || rawType.includes("sidecar")) type = "carousel";
+            
+            let dateStr: string;
+            if (typeof p.date === "number") {
+              dateStr = new Date(p.date * 1000).toISOString();
+            } else if (typeof p.date === "string") {
+              dateStr = new Date(p.date).toISOString();
+            } else {
+              dateStr = new Date().toISOString();
+            }
+
+            return {
+              platform: "instagram",
+              type,
+              content: (p.text || p.description || "").slice(0, 200),
+              likes,
+              comments,
+              views,
+              date: dateStr,
+              engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
+              external_id: `instagram_${p.postID || p.socialPostID || p.id || i}`,
+            };
+          });
+          
+          console.log(`Instagram Feed returned ${feedPosts.length} posts, using ${posts.length}`);
+        }
+      } else {
+        console.warn("Feed endpoint failed, falling back to lastPosts:", feedRes.status);
+      }
+    } catch (feedErr) {
+      console.warn("Feed endpoint error, falling back to lastPosts:", feedErr);
+    }
+  }
+
+  // Step 3: Fallback to lastPosts from profile if Feed returned nothing
+  if (posts.length === 0) {
+    const lastPosts = profileData?.lastPosts || [];
+    posts = lastPosts.map((p: any, i: number) => {
+      const likes = p.likes || 0;
+      const comments = p.comments || 0;
+      const rawType = (p.type || "").toLowerCase();
+      const type = rawType.includes("video") || rawType.includes("reel") ? "reel" : rawType === "graphsidecar" ? "carousel" : "image";
+      return {
+        platform: "instagram",
+        type,
+        content: (p.text || "").slice(0, 200),
+        likes,
+        comments,
+        views: null,
+        date: p.date ? new Date(p.date * 1000).toISOString() : new Date().toISOString(),
+        engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
+        external_id: `instagram_${p.id || i}`,
+      };
+    });
+  }
+
+  return { available: true, collecting, followers, engagementRate: avgER, posts, raw: profileData };
 }
 
 async function fetchYouTube(handle: string): Promise<PlatformResult> {
