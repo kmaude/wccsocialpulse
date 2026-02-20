@@ -7,8 +7,10 @@ const corsHeaders = {
 };
 
 async function searchInstagram(query: string, rapidApiKey: string) {
+  // Append "business" hint to surface pages/brands over personal creators
+  const businessQuery = query.toLowerCase().includes("business") ? query : `${query} business`;
   const res = await fetch(
-    `https://instagram-statistics-api.p.rapidapi.com/search?q=${encodeURIComponent(query)}&perPage=5`,
+    `https://instagram-statistics-api.p.rapidapi.com/search?q=${encodeURIComponent(businessQuery)}&perPage=10`,
     {
       headers: {
         "x-rapidapi-key": rapidApiKey,
@@ -112,7 +114,9 @@ serve(async (req) => {
     const results = await Promise.allSettled(searches);
     const candidates = results
       .filter((r): r is PromiseFulfilledResult<any[]> => r.status === "fulfilled")
-      .flatMap((r) => r.value);
+      .flatMap((r) => r.value)
+      // Prioritize accounts with more followers (likely businesses/brands)
+      .sort((a, b) => (b.follower_count || 0) - (a.follower_count || 0));
 
     return new Response(JSON.stringify({ success: true, candidates }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
