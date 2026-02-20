@@ -65,122 +65,147 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
   const key = Deno.env.get("RAPIDAPI_KEY");
   if (!key) return { available: false, error: "RAPIDAPI_KEY not configured", followers: 0, posts: [] };
 
-  const host = "instagram-statistics-api.p.rapidapi.com";
-  const headers = { "x-rapidapi-key": key, "x-rapidapi-host": host };
+  try {
+    const host = "instagram-statistics-api.p.rapidapi.com";
+    const headers = { "x-rapidapi-key": key, "x-rapidapi-host": host };
 
-  // Step 1: Get profile data (followers, avgER, cid)
-  const profileUrl = `https://${host}/community?url=https://www.instagram.com/${handle}`;
-  const profileRes = await fetch(profileUrl, { headers });
-  if (!profileRes.ok) {
-    const t = await profileRes.text();
-    return { available: false, error: `API ${profileRes.status}: ${t.slice(0, 200)}`, followers: 0, posts: [] };
-  }
-  const profileDataRaw = await profileRes.json();
-  const profileData = profileDataRaw?.data || profileDataRaw;
-
-  // Debug logging
-  console.log("Instagram raw profile response keys:", JSON.stringify(Object.keys(profileDataRaw || {})));
-  console.log("Instagram data keys:", JSON.stringify(Object.keys(profileData || {})));
-  console.log("Instagram communityStatus:", profileData?.communityStatus);
-  console.log("Instagram usersCount:", profileData?.usersCount);
-  console.log("Instagram cid:", profileData?.cid);
-  console.log("Instagram lastPosts count:", profileData?.lastPosts?.length);
-  console.log("Instagram raw response (truncated):", JSON.stringify(profileData).slice(0, 2000));
-
-  const followers = profileData?.usersCount || 0;
-  const collecting = profileData?.communityStatus === "COLLECTING";
-  const avgER = profileData?.avgER || 0;
-  const cid = profileData?.cid;
-
-  // Step 2: If we have cid, fetch full post history via Feed endpoint (last 8 weeks)
-  let posts: PostData[] = [];
-
-  if (cid && !collecting) {
-    try {
-      const now = new Date();
-      const eightWeeksAgo = new Date(now.getTime() - 56 * 24 * 60 * 60 * 1000);
-      
-      const fromDate = `${String(eightWeeksAgo.getDate()).padStart(2, '0')}.${String(eightWeeksAgo.getMonth() + 1).padStart(2, '0')}.${eightWeeksAgo.getFullYear()}`;
-      const toDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
-
-      const feedUrl = `https://${host}/feed?cid=${encodeURIComponent(cid)}&from=${fromDate}&to=${toDate}&type=posts&sort=-date`;
-      console.log("Fetching Instagram feed:", feedUrl);
-      
-      const feedRes = await fetch(feedUrl, { headers });
-      if (feedRes.ok) {
-        const feedData = await feedRes.json();
-        const feedPosts = feedData?.posts || feedData?.data || [];
-        
-        if (Array.isArray(feedPosts) && feedPosts.length > 0) {
-          posts = feedPosts.slice(0, 50).map((p: any, i: number) => {
-            const likes = p.likes || 0;
-            const comments = p.comments || 0;
-            const views = p.views || p.videoViews || null;
-            
-            const rawType = (p.type || "").toLowerCase();
-            let type = "image";
-            if (rawType.includes("reel")) type = "reel";
-            else if (rawType.includes("video")) type = "video";
-            else if (rawType === "graphsidecar" || rawType.includes("carousel") || rawType.includes("sidecar")) type = "carousel";
-            
-            let dateStr: string;
-            if (typeof p.date === "number") {
-              dateStr = new Date(p.date * 1000).toISOString();
-            } else if (typeof p.date === "string") {
-              dateStr = new Date(p.date).toISOString();
-            } else {
-              dateStr = new Date().toISOString();
-            }
-
-            return {
-              platform: "instagram",
-              type,
-              content: (p.text || p.description || "").slice(0, 200),
-              likes,
-              comments,
-              views,
-              date: dateStr,
-              engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
-              external_id: `instagram_${p.postID || p.socialPostID || p.id || i}`,
-            };
-          });
-          
-          console.log(`Instagram Feed returned ${feedPosts.length} posts, using ${posts.length}`);
-        }
-      } else {
-        console.warn("Feed endpoint failed, falling back to lastPosts:", feedRes.status);
-      }
-    } catch (feedErr) {
-      console.warn("Feed endpoint error, falling back to lastPosts:", feedErr);
+    // Step 1: Get profile data (followers, avgER, cid)
+    const profileUrl = `https://${host}/community?url=https://www.instagram.com/${handle}`;
+    const profileRes = await fetch(profileUrl, { headers });
+    if (!profileRes.ok) {
+      const t = await profileRes.text();
+      return { available: false, error: `API ${profileRes.status}: ${t.slice(0, 200)}`, followers: 0, posts: [] };
     }
+    const profileDataRaw = await profileRes.json();
+    const profileData = profileDataRaw?.data || profileDataRaw;
+
+    // Debug logging
+    console.log("Instagram raw profile response keys:", JSON.stringify(Object.keys(profileDataRaw || {})));
+    console.log("Instagram data keys:", JSON.stringify(Object.keys(profileData || {})));
+    console.log("Instagram communityStatus:", profileData?.communityStatus);
+    console.log("Instagram usersCount:", profileData?.usersCount);
+    console.log("Instagram cid:", profileData?.cid);
+    console.log("Instagram lastPosts count:", profileData?.lastPosts?.length);
+
+    const followers = profileData?.usersCount || 0;
+    const collecting = profileData?.communityStatus === "COLLECTING";
+    const avgER = profileData?.avgER || 0;
+    const cid = profileData?.cid;
+
+    // Step 2: If we have cid, fetch full post history via Feed endpoint (last 8 weeks)
+    let posts: PostData[] = [];
+
+    if (cid && !collecting) {
+      try {
+        const now = new Date();
+        const eightWeeksAgo = new Date(now.getTime() - 56 * 24 * 60 * 60 * 1000);
+        
+        const fromDate = `${String(eightWeeksAgo.getDate()).padStart(2, '0')}.${String(eightWeeksAgo.getMonth() + 1).padStart(2, '0')}.${eightWeeksAgo.getFullYear()}`;
+        const toDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+
+        const feedUrl = `https://${host}/feed?cid=${encodeURIComponent(cid)}&from=${fromDate}&to=${toDate}&type=posts&sort=-date`;
+        console.log("Fetching Instagram feed:", feedUrl);
+        
+        const feedRes = await fetch(feedUrl, { headers });
+        if (feedRes.ok) {
+          const feedDataRaw = await feedRes.json();
+          const feedData = feedDataRaw?.data || feedDataRaw;
+          const feedPosts = feedData?.posts || feedData?.data || (Array.isArray(feedData) ? feedData : []);
+          
+          if (Array.isArray(feedPosts) && feedPosts.length > 0) {
+            posts = feedPosts.slice(0, 50).map((p: any, i: number) => {
+              const likes = p.likes || 0;
+              const comments = p.comments || 0;
+              const views = p.views || p.videoViews || null;
+              
+              const rawType = (p.type || "").toLowerCase();
+              let type = "image";
+              if (rawType.includes("reel")) type = "reel";
+              else if (rawType.includes("video")) type = "video";
+              else if (rawType === "graphsidecar" || rawType.includes("carousel") || rawType.includes("sidecar")) type = "carousel";
+              
+              let dateStr: string;
+              try {
+                if (typeof p.date === "number") {
+                  dateStr = new Date(p.date * 1000).toISOString();
+                } else if (typeof p.date === "string") {
+                  dateStr = new Date(p.date).toISOString();
+                } else {
+                  dateStr = new Date().toISOString();
+                }
+              } catch {
+                dateStr = new Date().toISOString();
+              }
+
+              return {
+                platform: "instagram",
+                type,
+                content: (p.text || p.description || "").slice(0, 200),
+                likes,
+                comments,
+                views,
+                date: dateStr,
+                engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
+                external_id: `instagram_${p.postID || p.socialPostID || p.id || i}`,
+              };
+            });
+            
+            console.log(`Instagram Feed returned ${feedPosts.length} posts, using ${posts.length}`);
+          }
+        } else {
+          console.warn("Feed endpoint failed, falling back to lastPosts:", feedRes.status);
+        }
+      } catch (feedErr) {
+        console.warn("Feed endpoint error, falling back to lastPosts:", feedErr);
+      }
+    }
+
+    // Debug: log feed result
+    console.log("Feed endpoint result: posts count =", posts.length, "fell back to lastPosts =", posts.length === 0);
+
+    // Step 3: Fallback to lastPosts from profile if Feed returned nothing
+    if (posts.length === 0) {
+      const lastPosts = profileData?.lastPosts || [];
+      console.log("lastPosts raw sample:", JSON.stringify(lastPosts[0] || {}).slice(0, 500));
+      posts = lastPosts.map((p: any, i: number) => {
+        const likes = p.likes || 0;
+        const comments = p.comments || 0;
+        const rawType = (p.type || "").toLowerCase();
+        const type = rawType.includes("video") || rawType.includes("reel") ? "reel" : rawType === "graphsidecar" ? "carousel" : "image";
+        
+        let dateStr: string;
+        try {
+          if (typeof p.date === "number") {
+            dateStr = new Date(p.date * 1000).toISOString();
+          } else if (typeof p.date === "string") {
+            dateStr = new Date(p.date).toISOString();
+          } else {
+            dateStr = new Date().toISOString();
+          }
+        } catch {
+          dateStr = new Date().toISOString();
+        }
+        
+        return {
+          platform: "instagram",
+          type,
+          content: (p.text || "").slice(0, 200),
+          likes,
+          comments,
+          views: null,
+          date: dateStr,
+          engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
+          external_id: `instagram_${p.id || i}`,
+        };
+      });
+    }
+
+    console.log("fetchInstagram returning: available=true, followers=", followers, "posts=", posts.length);
+    return { available: true, collecting, followers, engagementRate: avgER, posts, raw: profileData };
+  } catch (err: any) {
+    console.error("fetchInstagram unexpected error:", err?.message || err);
+    return { available: false, error: `Unexpected: ${err?.message || "unknown"}`, followers: 0, posts: [] };
   }
-
-  // Debug: log feed result
-  console.log("Feed endpoint result: posts count =", posts.length, "fell back to lastPosts =", posts.length === 0);
-
-  // Step 3: Fallback to lastPosts from profile if Feed returned nothing
-  if (posts.length === 0) {
-    const lastPosts = profileData?.lastPosts || [];
-    posts = lastPosts.map((p: any, i: number) => {
-      const likes = p.likes || 0;
-      const comments = p.comments || 0;
-      const rawType = (p.type || "").toLowerCase();
-      const type = rawType.includes("video") || rawType.includes("reel") ? "reel" : rawType === "graphsidecar" ? "carousel" : "image";
-      return {
-        platform: "instagram",
-        type,
-        content: (p.text || "").slice(0, 200),
-        likes,
-        comments,
-        views: null,
-        date: p.date ? new Date(p.date * 1000).toISOString() : new Date().toISOString(),
-        engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
-        external_id: `instagram_${p.id || i}`,
-      };
-    });
-  }
-
-  return { available: true, collecting, followers, engagementRate: avgER, posts, raw: profileData };
 }
 
 async function fetchYouTube(handle: string): Promise<PlatformResult> {
