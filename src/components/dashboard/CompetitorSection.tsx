@@ -151,12 +151,14 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
 
       {/* Add Competitor Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="font-display">Add Competitor</DialogTitle>
             <DialogDescription>Find a business by searching, pasting a social URL, or their website.</DialogDescription>
           </DialogHeader>
-          <AddCompetitorTabs onConfirm={handleConfirmCompetitor} confirming={confirming} />
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <AddCompetitorTabs onConfirm={handleConfirmCompetitor} confirming={confirming} />
+          </div>
         </DialogContent>
       </Dialog>
     </>
