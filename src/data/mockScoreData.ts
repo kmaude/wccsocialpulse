@@ -15,6 +15,7 @@ export interface ContentPost {
   engagementRate: number;
   reach: number;
   date: string;
+  thumbnailUrl?: string | null;
 }
 
 export interface CompetitorData {

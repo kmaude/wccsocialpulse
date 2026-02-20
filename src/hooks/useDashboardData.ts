@@ -106,7 +106,7 @@ export function useUserPosts() {
       if (error) throw error;
       if (!data) return [];
       return data.map((row): ContentPost => {
-        const metrics = (row.metrics as Record<string, number> | null) ?? {};
+        const metrics = (row.metrics as Record<string, any> | null) ?? {};
         return {
           id: row.id,
           platform: capitalize(row.platform) as ContentPost["platform"],
@@ -115,6 +115,7 @@ export function useUserPosts() {
           engagementRate: metrics.engagement_rate || 0,
           reach: metrics.views || metrics.likes || 0,
           date: row.published_at || row.created_at,
+          thumbnailUrl: metrics.thumbnail_url || null,
         };
       });
     },

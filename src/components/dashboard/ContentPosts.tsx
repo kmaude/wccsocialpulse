@@ -10,12 +10,30 @@ const PLATFORM_ICONS: Record<string, string> = {
 
 function PostCard({ post }: { post: ContentPost }) {
   return (
-    <Card className="border bg-muted/20 hover:bg-muted/40 transition-colors">
+    <Card className="border bg-muted/20 hover:bg-muted/40 transition-colors overflow-hidden">
+      {post.thumbnailUrl && (
+        <div className="relative w-full aspect-video bg-muted">
+          <img
+            src={post.thumbnailUrl}
+            alt={post.content || "Post thumbnail"}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              (e.currentTarget.parentElement as HTMLElement).style.display = "none";
+            }}
+          />
+          <div className="absolute top-2 right-2">
+            <Badge variant="secondary" className="text-[10px] bg-background/80 backdrop-blur-sm">
+              {post.type}
+            </Badge>
+          </div>
+        </div>
+      )}
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">{PLATFORM_ICONS[post.platform]}</span>
-            <Badge variant="outline" className="text-[10px]">{post.type}</Badge>
+            {!post.thumbnailUrl && <Badge variant="outline" className="text-[10px]">{post.type}</Badge>}
           </div>
           <span className="text-xs text-muted-foreground">{new Date(post.date).toLocaleDateString()}</span>
         </div>
