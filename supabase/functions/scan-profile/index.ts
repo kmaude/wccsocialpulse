@@ -46,8 +46,12 @@ interface PlatformResult {
   followers: number;
   engagementRate?: number;
   posts: PostData[];
-  avgPostsPerWeek?: number;
-  totalPostsInPeriod?: number;
+  qualityScore?: number;
+  avgInteractions?: number;
+  avgViews?: number;
+  avgVideoViews?: number;
+  velocityEstimate?: number;
+  pctFakeFollowers?: number;
   raw?: any;
 }
 
@@ -71,7 +75,7 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
     const host = "instagram-statistics-api.p.rapidapi.com";
     const headers = { "x-rapidapi-key": key, "x-rapidapi-host": host };
 
-    // Step 1: Get profile data (followers, avgER, cid)
+    // Single API call: /community (available on BASIC plan)
     const profileUrl = `https://${host}/community?url=https://www.instagram.com/${handle}`;
     const profileRes = await fetch(profileUrl, { headers });
     if (!profileRes.ok) {
@@ -84,91 +88,80 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
     const followers = profileData?.usersCount || 0;
     const collecting = profileData?.communityStatus === "COLLECTING";
     const avgER = profileData?.avgER || 0;
-    const cid = profileData?.cid;
+    const qualityScore = profileData?.qualityScore || 0;
+    const avgInteractions = profileData?.avgInteractions || 0;
+    const avgViews = profileData?.avgViews || 0;
+    const avgVideoViews = profileData?.avgVideoViews || 0;
+    const pctFakeFollowers = profileData?.pctFakeFollowers || 0;
 
-    // Step 2: If we have cid, fetch retrospective data for velocity metrics
-    let avgPostsPerWeek = 0;
-    let totalPostsInPeriod = 0;
+    // Estimate posting frequency from the gaps between lastPosts dates
+    let velocityEstimate = 0;
+    const lastPosts = profileData?.lastPosts || [];
+    if (lastPosts.length >= 2) {
+      const dates = lastPosts
+        .map((p: any) => typeof p.date === "number" ? p.date * 1000 : new Date(p.date).getTime())
+        .filter((d: number) => !isNaN(d))
+        .sort((a: number, b: number) => b - a);
 
-    if (cid && !collecting) {
-      try {
-        const now = new Date();
-        const eightWeeksAgo = new Date(now.getTime() - 56 * 24 * 60 * 60 * 1000);
-        
-        const fromDate = `${String(eightWeeksAgo.getDate()).padStart(2, '0')}.${String(eightWeeksAgo.getMonth() + 1).padStart(2, '0')}.${eightWeeksAgo.getFullYear()}`;
-        const toDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
-
-        const retroUrl = `https://${host}/retrospective?cid=${encodeURIComponent(cid)}&from=${fromDate}&to=${toDate}`;
-        console.log("Fetching Instagram retrospective:", retroUrl);
-        
-        const retroRes = await fetch(retroUrl, { headers });
-        if (retroRes.ok) {
-          const retroRaw = await retroRes.json();
-          const retroData = retroRaw?.data || retroRaw;
-          
-          const series = retroData?.series?.current || retroData?.current || [];
-          const dailyMetrics = Array.isArray(series) ? series : [];
-          
-          if (dailyMetrics.length > 0) {
-            totalPostsInPeriod = dailyMetrics.reduce((sum: number, day: any) => sum + (day.deltaPosts || 0), 0);
-            const lastDay = dailyMetrics[dailyMetrics.length - 1];
-            avgPostsPerWeek = lastDay?.avgPostsPerWeek || (totalPostsInPeriod / 8);
-            
-            console.log(`Instagram Retrospective: ${dailyMetrics.length} days, ${totalPostsInPeriod} total posts, ${avgPostsPerWeek.toFixed(1)} posts/week`);
-          }
-        } else {
-          const errText = await retroRes.text();
-          console.warn("Retrospective endpoint failed:", retroRes.status, errText.slice(0, 300));
+      if (dates.length >= 2) {
+        const gaps: number[] = [];
+        for (let i = 0; i < dates.length - 1; i++) {
+          gaps.push(dates[i] - dates[i + 1]);
         }
-      } catch (retroErr) {
-        console.warn("Retrospective endpoint error:", retroErr);
+        const avgGapMs = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+        const avgGapDays = avgGapMs / (1000 * 60 * 60 * 24);
+        if (avgGapDays > 0) {
+          velocityEstimate = 7 / avgGapDays;
+        }
       }
     }
 
-    // Step 3: Get posts from lastPosts (for display, video detection, recency)
-    let posts: PostData[] = [];
-    const lastPosts = profileData?.lastPosts || [];
-    posts = lastPosts.map((p: any, i: number) => {
-        const likes = p.likes || 0;
-        const comments = p.comments || 0;
-        const rawType = (p.type || "").toLowerCase();
-        const type = rawType.includes("video") || rawType.includes("reel") ? "reel" : rawType === "graphsidecar" ? "carousel" : "image";
-        
-        let dateStr: string;
-        try {
-          if (typeof p.date === "number") {
-            dateStr = new Date(p.date * 1000).toISOString();
-          } else if (typeof p.date === "string") {
-            dateStr = new Date(p.date).toISOString();
-          } else {
-            dateStr = new Date().toISOString();
-          }
-        } catch {
+    // Extract posts from lastPosts for display, video detection, recency
+    const posts: PostData[] = lastPosts.map((p: any, i: number) => {
+      const likes = p.likes || 0;
+      const comments = p.comments || 0;
+      const rawType = (p.type || "").toLowerCase();
+      const type = rawType.includes("video") || rawType.includes("reel") ? "reel" : rawType === "graphsidecar" ? "carousel" : "image";
+
+      let dateStr: string;
+      try {
+        if (typeof p.date === "number") {
+          dateStr = new Date(p.date * 1000).toISOString();
+        } else if (typeof p.date === "string") {
+          dateStr = new Date(p.date).toISOString();
+        } else {
           dateStr = new Date().toISOString();
         }
-        
-        return {
-          platform: "instagram",
-          type,
-          content: (p.text || "").slice(0, 200),
-          likes,
-          comments,
-          views: null,
-          date: dateStr,
-          engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
-          external_id: `instagram_${p.id || i}`,
-        };
-      });
+      } catch {
+        dateStr = new Date().toISOString();
+      }
 
-    return { 
-      available: true, 
-      collecting, 
-      followers, 
-      engagementRate: avgER, 
+      return {
+        platform: "instagram",
+        type,
+        content: (p.text || "").slice(0, 200),
+        likes,
+        comments,
+        views: null,
+        date: dateStr,
+        engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
+        external_id: `instagram_${p.id || i}`,
+      };
+    });
+
+    return {
+      available: true,
+      collecting,
+      followers,
+      engagementRate: avgER,
       posts,
-      avgPostsPerWeek: avgPostsPerWeek || undefined,
-      totalPostsInPeriod: totalPostsInPeriod || undefined,
-      raw: profileData 
+      qualityScore,
+      avgInteractions,
+      avgViews,
+      avgVideoViews,
+      velocityEstimate,
+      pctFakeFollowers,
+      raw: profileData,
     };
   } catch (err: any) {
     console.error("fetchInstagram unexpected error:", err?.message || err);
@@ -327,73 +320,108 @@ async function fetchTikTok(handle: string): Promise<PlatformResult> {
 // ── Score Computation ────────────────────────────────────────────────────────
 
 function computeScores(platforms: Record<string, PlatformResult>, providedPlatforms: string[]) {
-  // Collect all posts
+  const now = Date.now();
+
   const allPosts: PostData[] = [];
   for (const p of Object.values(platforms)) {
     if (p.available) allPosts.push(...p.posts);
   }
 
   // ── Velocity ──
-  const now = Date.now();
-  const fiftysixDaysAgo = now - 56 * 24 * 60 * 60 * 1000;
-  
-  // Prefer avgPostsPerWeek from Instagram Retrospective API if available
   let postsPerWeek = 0;
-  
-  const igData = platforms.instagram;
-  if (igData?.available && igData?.avgPostsPerWeek && igData.avgPostsPerWeek > 0) {
-    postsPerWeek = igData.avgPostsPerWeek;
-    console.log("Velocity using Instagram avgPostsPerWeek:", postsPerWeek);
-  }
-  
-  // Add posts from other platforms by counting their post arrays
-  for (const [key, p] of Object.entries(platforms)) {
-    if (key === "instagram") continue;
+
+  for (const p of Object.values(platforms)) {
     if (!p.available) continue;
-    const recentPosts = p.posts.filter(post => new Date(post.date).getTime() >= fiftysixDaysAgo);
-    postsPerWeek += recentPosts.length / 8;
+    if (p.velocityEstimate && p.velocityEstimate > 0) {
+      postsPerWeek += p.velocityEstimate;
+    } else if (p.posts.length > 0) {
+      const fiftysixDaysAgo = now - 56 * 24 * 60 * 60 * 1000;
+      const recent = p.posts.filter(post => new Date(post.date).getTime() >= fiftysixDaysAgo);
+      postsPerWeek += recent.length / 8;
+    }
   }
-  
-  // If no retrospective data, fall back to counting all posts
-  if (postsPerWeek === 0) {
-    const recentPosts = allPosts.filter(p => new Date(p.date).getTime() >= fiftysixDaysAgo);
-    postsPerWeek = recentPosts.length / 8;
+
+  // qualityScore factors in posting frequency — use as velocity floor
+  const igData = platforms.instagram;
+  if (igData?.available && igData?.qualityScore && igData.qualityScore > 0.5) {
+    const qualityFloor = igData.qualityScore * 7;
+    if (postsPerWeek < qualityFloor) {
+      postsPerWeek = Math.max(postsPerWeek, qualityFloor);
+    }
   }
-  
+
   const velocityScore = Math.round(lerp(postsPerWeek, [
     [0, 0], [1, 20], [2, 35], [3, 50], [4, 65], [5, 75], [7, 85], [10, 95], [14, 100],
   ]));
 
   // ── Video Dominance ──
   let videoScore: number;
-  if (allPosts.length === 0) {
+  if (allPosts.length === 0 && !igData?.avgVideoViews) {
     videoScore = 30;
   } else {
     const videoTypes = ["reel", "video", "short"];
-    const videoCount = allPosts.filter(p => videoTypes.includes(p.type)).length;
-    const ratio = videoCount / allPosts.length;
-    videoScore = Math.round(lerp(ratio * 100, [
-      [0, 10], [25, 30], [50, 55], [75, 80], [90, 95],
-    ]));
+    const videoPostCount = allPosts.filter(p => videoTypes.includes(p.type)).length;
+
+    if (allPosts.length >= 6) {
+      const ratio = videoPostCount / allPosts.length;
+      videoScore = Math.round(lerp(ratio * 100, [
+        [0, 10], [25, 30], [50, 55], [75, 80], [90, 95],
+      ]));
+    } else if (igData?.available && igData.avgVideoViews && igData.avgViews) {
+      const videoViewShare = igData.avgViews > 0 ? igData.avgVideoViews / igData.avgViews : 0;
+      const estimatedRatio = Math.min(videoViewShare, 1.0);
+      videoScore = Math.round(lerp(estimatedRatio * 100, [
+        [0, 10], [25, 30], [50, 55], [75, 80], [90, 95],
+      ]));
+      if (igData.avgVideoViews > 0 && videoScore < 30) videoScore = 30;
+    } else {
+      const ratio = allPosts.length > 0 ? videoPostCount / allPosts.length : 0;
+      videoScore = Math.round(lerp(ratio * 100, [
+        [0, 10], [25, 30], [50, 55], [75, 80], [90, 95],
+      ]));
+    }
   }
 
   // ── Engagement ──
   const platformERs: number[] = [];
   for (const [key, p] of Object.entries(platforms)) {
     if (!p.available || p.followers === 0) continue;
-    if (key === "instagram" && p.engagementRate) {
+    if (p.engagementRate && p.engagementRate > 0) {
       platformERs.push(p.engagementRate);
     } else if (p.posts.length > 0) {
       const avgER = p.posts.reduce((s, post) => s + post.engagement_rate, 0) / p.posts.length;
       platformERs.push(avgER);
     }
   }
-  const avgER = platformERs.length > 0 ? platformERs.reduce((a, b) => a + b, 0) / platformERs.length : 0;
-  const engagementScore = Math.round(lerp(avgER, [
-    [0, 15], [0.5, 30], [1, 50], [2, 70], [4, 85], [7, 95],
-  ]));
+  const avgEngagementRate = platformERs.length > 0
+    ? platformERs.reduce((a, b) => a + b, 0) / platformERs.length
+    : 0;
 
-  // ── Competitor Gap ── (null for now, redistribute weight)
+  let engagementScore: number;
+  const maxFollowers = Math.max(...Object.values(platforms).map(p => p.followers));
+
+  if (maxFollowers >= 10000000) {
+    engagementScore = Math.round(lerp(avgEngagementRate, [
+      [0, 15], [0.05, 30], [0.1, 45], [0.3, 60], [0.5, 70], [1, 85], [2, 95],
+    ]));
+  } else if (maxFollowers >= 1000000) {
+    engagementScore = Math.round(lerp(avgEngagementRate, [
+      [0, 15], [0.1, 25], [0.3, 40], [0.5, 50], [1, 65], [2, 80], [4, 95],
+    ]));
+  } else {
+    engagementScore = Math.round(lerp(avgEngagementRate, [
+      [0, 15], [0.5, 30], [1, 50], [2, 70], [4, 85], [7, 95],
+    ]));
+  }
+
+  if (igData?.available && igData.qualityScore && igData.qualityScore > 0.3) {
+    const qualityEngagementFloor = Math.round(igData.qualityScore * 80);
+    if (engagementScore < qualityEngagementFloor) {
+      engagementScore = Math.round((engagementScore + qualityEngagementFloor) / 2);
+    }
+  }
+
+  // ── Competitor Gap ──
   const competitorScore = null;
 
   // ── Coverage ──
@@ -401,7 +429,7 @@ function computeScores(platforms: Record<string, PlatformResult>, providedPlatfo
   const activePlatforms = providedPlatforms.filter(key => {
     const p = platforms[key];
     if (!p?.available) return false;
-    if (key === "instagram" && p.totalPostsInPeriod && p.totalPostsInPeriod > 0) return true;
+    if (key === "instagram" && p.qualityScore && p.qualityScore > 0) return true;
     return p.posts.some(post => new Date(post.date).getTime() >= thirtyDaysAgo);
   }).length;
   const coverageScore = providedPlatforms.length > 0
@@ -420,12 +448,15 @@ function computeScores(platforms: Record<string, PlatformResult>, providedPlatfo
       ]));
     }
   }
+  if (igData?.available && igData.qualityScore && igData.qualityScore > 0.3 && recencyScore < 40) {
+    recencyScore = Math.max(recencyScore, 50);
+  }
 
   // ── Weights (redistribute competitor 15%) ──
   const weights = {
-    velocity: 25 + 6.25,   // 31.25
+    velocity: 25 + 6.25,
     video: 20,
-    engagement: 20 + 8.75, // 28.75
+    engagement: 20 + 8.75,
     competitor: 0,
     coverage: 10,
     recency: 10,
@@ -522,6 +553,8 @@ serve(async (req) => {
     const ttHandle = clean(body.tiktok);
     const userId: string | null = body.user_id || null;
 
+    console.log("Scanning:", { ig: igHandle, yt: ytHandle, fb: fbHandle, tt: ttHandle });
+
     if (!igHandle && !ytHandle && !fbHandle && !ttHandle) {
       return new Response(JSON.stringify({ success: false, error: "At least one platform handle is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -582,6 +615,7 @@ serve(async (req) => {
 
     // ── Compute Score ──
     const { overall, subScores, dimensions } = computeScores(platformData, providedPlatforms);
+    console.log("Score computed:", overall, subScores);
     const insightText = generateInsight(overall, subScores);
     const recommendations = generateRecommendations(subScores, platformData);
 
