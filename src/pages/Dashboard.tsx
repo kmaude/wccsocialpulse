@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
+import EkgPulse from "@/components/EkgPulse";
 import { useQueryClient } from "@tanstack/react-query";
 import { ScoreAlertNudges } from "@/components/dashboard/ScoreAlertNudges";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -110,11 +111,7 @@ const Dashboard = () => {
           <div className="text-center py-16 space-y-4">
             {refreshing ? (
               <>
-                <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-                  <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-                  <RefreshCw className="h-8 w-8 text-primary" />
-                </div>
+                <EkgPulse className="w-48 h-16 mx-auto" />
                 <h2 className="font-display text-2xl font-bold">Generating Your Report...</h2>
                 <p className="text-muted-foreground max-w-md mx-auto">
                   We're pulling data from your social profiles and calculating your Visibility Score. This may take a moment.
