@@ -49,6 +49,15 @@ const Dashboard = () => {
   const dimensions = dimensionsFromSubScores(latestScore?.sub_scores as Record<string, number | null> | null);
   const aiRecommendations = (latestScore?.ai_recommendations as string[] | null) ?? [];
 
+  const hasHandles = !!(profile?.instagram_handle || profile?.facebook_handle || profile?.youtube_handle || profile?.tiktok_handle);
+
+  // Auto-trigger scan for new users who have handles but no score yet
+  useEffect(() => {
+    if (!scoreLoading && !latestScore && hasHandles && !refreshing && profile && session?.user?.id) {
+      handleRefresh();
+    }
+  }, [scoreLoading, latestScore, hasHandles, profile, session?.user?.id]);
+
   useEffect(() => {
     checkSubscription();
     if (searchParams.get("upgrade") === "success") {
@@ -99,13 +108,29 @@ const Dashboard = () => {
           </div>
         ) : !latestScore ? (
           <div className="text-center py-16 space-y-4">
-            <h2 className="font-display text-2xl font-bold">Welcome to Social Pulse!</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              You haven't run a scan yet. Get your first Visibility Score to see your report.
-            </p>
-            <Button asChild size="lg">
-              <Link to="/">Run Your First Scan</Link>
-            </Button>
+            {refreshing ? (
+              <>
+                <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                  <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                  <RefreshCw className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="font-display text-2xl font-bold">Generating Your Report...</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  We're pulling data from your social profiles and calculating your Visibility Score. This may take a moment.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="font-display text-2xl font-bold">Welcome to Social Pulse!</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  You haven't run a scan yet. Get your first Visibility Score to see your report.
+                </p>
+                <Button asChild size="lg">
+                  <Link to="/">Run Your First Scan</Link>
+                </Button>
+              </>
+            )}
           </div>
         ) : (
           <>
