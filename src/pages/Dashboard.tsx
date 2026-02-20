@@ -75,8 +75,8 @@ const Dashboard = () => {
       if (pendingRaw) {
         try {
           const pending = JSON.parse(pendingRaw);
-          // Only use if less than 1 hour old
-          if (Date.now() - pending.timestamp < 60 * 60 * 1000 && pending.score) {
+          // Only use if less than 4 hours old
+          if (Date.now() - pending.timestamp < 4 * 60 * 60 * 1000 && pending.score) {
             // Persist the scan results to DB
             const persistPendingScan = async () => {
               setRefreshing(true);
