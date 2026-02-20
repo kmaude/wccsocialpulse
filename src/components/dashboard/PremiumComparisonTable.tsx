@@ -6,14 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const COMPARISON_ROWS = [
-  { feature: "Report frequency", free: "Monthly", premium: "Weekly" },
+  { feature: "Emailed report", free: "Monthly", premium: "Weekly" },
   { feature: "Score + 6 dimensions", free: true, premium: true },
-  { feature: "Best & worst post", free: "Top 1 / Bottom 1", premium: "Top 3 / Bottom 3 with AI analysis" },
+  { feature: "Best & worst posts", free: "Top 3 / Bottom 3", premium: "Top 10 / Bottom 10 with AI analysis" },
   { feature: "Competitor pulse", free: '"Add competitors" CTA', premium: "Full breakdown with velocity gap" },
   { feature: "AI recommendations", free: "1 quick win", premium: "3 detailed action items" },
   { feature: "Audience snapshot", free: "Basic follower count", premium: "Demographics, psychographics, active times" },
-  { feature: "Historical data", free: "6 months", premium: "24 months" },
-  { feature: "Platforms", free: "IG + FB + YT (public data)", premium: "All 4 incl. TikTok (OAuth analytics)" },
+  { feature: "Historical data", free: "6 months", premium: "24 months*" },
+  { feature: "Platforms", free: "IG + FB + YT (public data)", premium: "All 4 incl. TikTok (full analytics)" },
 ];
 
 function CellValue({ value }: { value: string | boolean }) {
@@ -71,6 +71,9 @@ export function PremiumComparisonTable() {
             </tbody>
           </table>
         </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          * 24-month lookback availability varies by platform. Instagram and Facebook provide up to 2 years of historical data. YouTube provides full channel history. TikTok is forward-looking only — data collection begins from your connection date.
+        </p>
         <Button
           onClick={handleUpgrade}
           disabled={loading}
