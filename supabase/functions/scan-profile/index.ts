@@ -46,6 +46,8 @@ interface PlatformResult {
   followers: number;
   engagementRate?: number;
   posts: PostData[];
+  avgPostsPerWeek?: number;
+  totalPostsInPeriod?: number;
   raw?: any;
 }
 
@@ -79,21 +81,14 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
     const profileDataRaw = await profileRes.json();
     const profileData = profileDataRaw?.data || profileDataRaw;
 
-    // Debug logging
-    console.log("Instagram raw profile response keys:", JSON.stringify(Object.keys(profileDataRaw || {})));
-    console.log("Instagram data keys:", JSON.stringify(Object.keys(profileData || {})));
-    console.log("Instagram communityStatus:", profileData?.communityStatus);
-    console.log("Instagram usersCount:", profileData?.usersCount);
-    console.log("Instagram cid:", profileData?.cid);
-    console.log("Instagram lastPosts count:", profileData?.lastPosts?.length);
-
     const followers = profileData?.usersCount || 0;
     const collecting = profileData?.communityStatus === "COLLECTING";
     const avgER = profileData?.avgER || 0;
     const cid = profileData?.cid;
 
-    // Step 2: If we have cid, fetch full post history via Feed endpoint (last 8 weeks)
-    let posts: PostData[] = [];
+    // Step 2: If we have cid, fetch retrospective data for velocity metrics
+    let avgPostsPerWeek = 0;
+    let totalPostsInPeriod = 0;
 
     if (cid && !collecting) {
       try {
@@ -103,71 +98,37 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
         const fromDate = `${String(eightWeeksAgo.getDate()).padStart(2, '0')}.${String(eightWeeksAgo.getMonth() + 1).padStart(2, '0')}.${eightWeeksAgo.getFullYear()}`;
         const toDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
 
-        const feedUrl = `https://${host}/feed?cid=${encodeURIComponent(cid)}&from=${fromDate}&to=${toDate}&type=posts&sort=-date`;
-        console.log("Fetching Instagram feed:", feedUrl);
+        const retroUrl = `https://${host}/retrospective?cid=${encodeURIComponent(cid)}&from=${fromDate}&to=${toDate}`;
+        console.log("Fetching Instagram retrospective:", retroUrl);
         
-        const feedRes = await fetch(feedUrl, { headers });
-        if (feedRes.ok) {
-          const feedDataRaw = await feedRes.json();
-          const feedData = feedDataRaw?.data || feedDataRaw;
-          const feedPosts = feedData?.posts || feedData?.data || (Array.isArray(feedData) ? feedData : []);
+        const retroRes = await fetch(retroUrl, { headers });
+        if (retroRes.ok) {
+          const retroRaw = await retroRes.json();
+          const retroData = retroRaw?.data || retroRaw;
           
-          if (Array.isArray(feedPosts) && feedPosts.length > 0) {
-            posts = feedPosts.slice(0, 50).map((p: any, i: number) => {
-              const likes = p.likes || 0;
-              const comments = p.comments || 0;
-              const views = p.views || p.videoViews || null;
-              
-              const rawType = (p.type || "").toLowerCase();
-              let type = "image";
-              if (rawType.includes("reel")) type = "reel";
-              else if (rawType.includes("video")) type = "video";
-              else if (rawType === "graphsidecar" || rawType.includes("carousel") || rawType.includes("sidecar")) type = "carousel";
-              
-              let dateStr: string;
-              try {
-                if (typeof p.date === "number") {
-                  dateStr = new Date(p.date * 1000).toISOString();
-                } else if (typeof p.date === "string") {
-                  dateStr = new Date(p.date).toISOString();
-                } else {
-                  dateStr = new Date().toISOString();
-                }
-              } catch {
-                dateStr = new Date().toISOString();
-              }
-
-              return {
-                platform: "instagram",
-                type,
-                content: (p.text || p.description || "").slice(0, 200),
-                likes,
-                comments,
-                views,
-                date: dateStr,
-                engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
-                external_id: `instagram_${p.postID || p.socialPostID || p.id || i}`,
-              };
-            });
+          const series = retroData?.series?.current || retroData?.current || [];
+          const dailyMetrics = Array.isArray(series) ? series : [];
+          
+          if (dailyMetrics.length > 0) {
+            totalPostsInPeriod = dailyMetrics.reduce((sum: number, day: any) => sum + (day.deltaPosts || 0), 0);
+            const lastDay = dailyMetrics[dailyMetrics.length - 1];
+            avgPostsPerWeek = lastDay?.avgPostsPerWeek || (totalPostsInPeriod / 8);
             
-            console.log(`Instagram Feed returned ${feedPosts.length} posts, using ${posts.length}`);
+            console.log(`Instagram Retrospective: ${dailyMetrics.length} days, ${totalPostsInPeriod} total posts, ${avgPostsPerWeek.toFixed(1)} posts/week`);
           }
         } else {
-          console.warn("Feed endpoint failed, falling back to lastPosts:", feedRes.status);
+          const errText = await retroRes.text();
+          console.warn("Retrospective endpoint failed:", retroRes.status, errText.slice(0, 300));
         }
-      } catch (feedErr) {
-        console.warn("Feed endpoint error, falling back to lastPosts:", feedErr);
+      } catch (retroErr) {
+        console.warn("Retrospective endpoint error:", retroErr);
       }
     }
 
-    // Debug: log feed result
-    console.log("Feed endpoint result: posts count =", posts.length, "fell back to lastPosts =", posts.length === 0);
-
-    // Step 3: Fallback to lastPosts from profile if Feed returned nothing
-    if (posts.length === 0) {
-      const lastPosts = profileData?.lastPosts || [];
-      console.log("lastPosts raw sample:", JSON.stringify(lastPosts[0] || {}).slice(0, 500));
-      posts = lastPosts.map((p: any, i: number) => {
+    // Step 3: Get posts from lastPosts (for display, video detection, recency)
+    let posts: PostData[] = [];
+    const lastPosts = profileData?.lastPosts || [];
+    posts = lastPosts.map((p: any, i: number) => {
         const likes = p.likes || 0;
         const comments = p.comments || 0;
         const rawType = (p.type || "").toLowerCase();
@@ -198,10 +159,17 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
           external_id: `instagram_${p.id || i}`,
         };
       });
-    }
 
-    console.log("fetchInstagram returning: available=true, followers=", followers, "posts=", posts.length);
-    return { available: true, collecting, followers, engagementRate: avgER, posts, raw: profileData };
+    return { 
+      available: true, 
+      collecting, 
+      followers, 
+      engagementRate: avgER, 
+      posts,
+      avgPostsPerWeek: avgPostsPerWeek || undefined,
+      totalPostsInPeriod: totalPostsInPeriod || undefined,
+      raw: profileData 
+    };
   } catch (err: any) {
     console.error("fetchInstagram unexpected error:", err?.message || err);
     return { available: false, error: `Unexpected: ${err?.message || "unknown"}`, followers: 0, posts: [] };
@@ -368,8 +336,30 @@ function computeScores(platforms: Record<string, PlatformResult>, providedPlatfo
   // ── Velocity ──
   const now = Date.now();
   const fiftysixDaysAgo = now - 56 * 24 * 60 * 60 * 1000;
-  const recentPosts = allPosts.filter(p => new Date(p.date).getTime() >= fiftysixDaysAgo);
-  const postsPerWeek = recentPosts.length / 8;
+  
+  // Prefer avgPostsPerWeek from Instagram Retrospective API if available
+  let postsPerWeek = 0;
+  
+  const igData = platforms.instagram;
+  if (igData?.available && igData?.avgPostsPerWeek && igData.avgPostsPerWeek > 0) {
+    postsPerWeek = igData.avgPostsPerWeek;
+    console.log("Velocity using Instagram avgPostsPerWeek:", postsPerWeek);
+  }
+  
+  // Add posts from other platforms by counting their post arrays
+  for (const [key, p] of Object.entries(platforms)) {
+    if (key === "instagram") continue;
+    if (!p.available) continue;
+    const recentPosts = p.posts.filter(post => new Date(post.date).getTime() >= fiftysixDaysAgo);
+    postsPerWeek += recentPosts.length / 8;
+  }
+  
+  // If no retrospective data, fall back to counting all posts
+  if (postsPerWeek === 0) {
+    const recentPosts = allPosts.filter(p => new Date(p.date).getTime() >= fiftysixDaysAgo);
+    postsPerWeek = recentPosts.length / 8;
+  }
+  
   const velocityScore = Math.round(lerp(postsPerWeek, [
     [0, 0], [1, 20], [2, 35], [3, 50], [4, 65], [5, 75], [7, 85], [10, 95], [14, 100],
   ]));
@@ -410,7 +400,9 @@ function computeScores(platforms: Record<string, PlatformResult>, providedPlatfo
   const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
   const activePlatforms = providedPlatforms.filter(key => {
     const p = platforms[key];
-    return p?.available && p.posts.some(post => new Date(post.date).getTime() >= thirtyDaysAgo);
+    if (!p?.available) return false;
+    if (key === "instagram" && p.totalPostsInPeriod && p.totalPostsInPeriod > 0) return true;
+    return p.posts.some(post => new Date(post.date).getTime() >= thirtyDaysAgo);
   }).length;
   const coverageScore = providedPlatforms.length > 0
     ? Math.round((activePlatforms / providedPlatforms.length) * 100)
