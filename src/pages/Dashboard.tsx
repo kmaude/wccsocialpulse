@@ -68,10 +68,82 @@ const Dashboard = () => {
     return `${hours}h`;
   }
 
-  // Auto-trigger scan for new users who have handles but no score yet
+  // Check for pending scan data from landing page (stored before email verification)
   useEffect(() => {
-    if (!scoreLoading && !latestScore && hasHandles && !refreshing && profile && session?.user?.id) {
-      handleRefresh(true);
+    if (!scoreLoading && !latestScore && session?.user?.id && profile && !refreshing) {
+      const pendingRaw = localStorage.getItem("pending_scan");
+      if (pendingRaw) {
+        try {
+          const pending = JSON.parse(pendingRaw);
+          // Only use if less than 1 hour old
+          if (Date.now() - pending.timestamp < 60 * 60 * 1000 && pending.score) {
+            // Persist the scan results to DB
+            const persistPendingScan = async () => {
+              setRefreshing(true);
+              try {
+                const score = pending.score;
+                await supabase.from("scores").insert({
+                  user_id: session.user.id,
+                  overall: score.overall,
+                  sub_scores: score.sub_scores,
+                  data_source: score.data_source || "real_time_scrape",
+                  ai_summary: score.ai_insight,
+                  ai_recommendations: score.ai_recommendations,
+                  period_start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+                  period_end: new Date().toISOString().split("T")[0],
+                });
+
+                // Persist posts if available
+                if (score.posts?.length > 0) {
+                  const postRows = score.posts.map((p: any) => ({
+                    user_id: session.user.id,
+                    platform: p.platform,
+                    content_type: p.type,
+                    content_snippet: p.content,
+                    published_at: p.date,
+                    external_id: p.external_id,
+                    metrics: { likes: p.likes, comments: p.comments, views: p.views, engagement_rate: p.engagement_rate },
+                  }));
+                  await supabase.from("posts").upsert(postRows, { onConflict: "user_id,platform,external_id", ignoreDuplicates: true });
+                }
+
+                // Update profile handles from pending data
+                if (pending.handles) {
+                  await supabase.from("profiles").update({
+                    instagram_handle: pending.handles.instagram || null,
+                    facebook_handle: pending.handles.facebook || null,
+                    youtube_handle: pending.handles.youtube || null,
+                    tiktok_handle: pending.handles.tiktok || null,
+                    last_scan_at: new Date().toISOString(),
+                  }).eq("id", session.user.id);
+                }
+
+                localStorage.removeItem("pending_scan");
+                queryClient.invalidateQueries({ queryKey: ["latestScore"] });
+                queryClient.invalidateQueries({ queryKey: ["previousScore"] });
+                queryClient.invalidateQueries({ queryKey: ["scoreHistory"] });
+                queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+                toast({ title: "Your report is ready! 🎉", description: `Your Visibility Score is ${score.overall}/100.` });
+              } catch (err) {
+                console.error("Failed to persist pending scan:", err);
+                localStorage.removeItem("pending_scan");
+              }
+              setRefreshing(false);
+            };
+            persistPendingScan();
+            return;
+          } else {
+            localStorage.removeItem("pending_scan");
+          }
+        } catch {
+          localStorage.removeItem("pending_scan");
+        }
+      }
+
+      // Fallback: auto-trigger scan for users with handles but no score
+      if (hasHandles) {
+        handleRefresh(true);
+      }
     }
   }, [scoreLoading, latestScore, hasHandles, profile, session?.user?.id]);
 
