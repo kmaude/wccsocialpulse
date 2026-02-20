@@ -156,7 +156,7 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
             <DialogTitle className="font-display">Add Competitor</DialogTitle>
             <DialogDescription>Find a business by searching, pasting a social URL, or their website.</DialogDescription>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto px-1">
             <AddCompetitorTabs onConfirm={handleConfirmCompetitor} confirming={confirming} />
           </div>
         </DialogContent>
