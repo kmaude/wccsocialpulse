@@ -75,10 +75,12 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
     const t = await profileRes.text();
     return { available: false, error: `API ${profileRes.status}: ${t.slice(0, 200)}`, followers: 0, posts: [] };
   }
-  const profileData = await profileRes.json();
+  const profileDataRaw = await profileRes.json();
+  const profileData = profileDataRaw?.data || profileDataRaw;
 
   // Debug logging
-  console.log("Instagram raw profile response keys:", JSON.stringify(Object.keys(profileData || {})));
+  console.log("Instagram raw profile response keys:", JSON.stringify(Object.keys(profileDataRaw || {})));
+  console.log("Instagram data keys:", JSON.stringify(Object.keys(profileData || {})));
   console.log("Instagram communityStatus:", profileData?.communityStatus);
   console.log("Instagram usersCount:", profileData?.usersCount);
   console.log("Instagram cid:", profileData?.cid);
