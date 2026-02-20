@@ -77,6 +77,14 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
   }
   const profileData = await profileRes.json();
 
+  // Debug logging
+  console.log("Instagram raw profile response keys:", JSON.stringify(Object.keys(profileData || {})));
+  console.log("Instagram communityStatus:", profileData?.communityStatus);
+  console.log("Instagram usersCount:", profileData?.usersCount);
+  console.log("Instagram cid:", profileData?.cid);
+  console.log("Instagram lastPosts count:", profileData?.lastPosts?.length);
+  console.log("Instagram raw response (truncated):", JSON.stringify(profileData).slice(0, 2000));
+
   const followers = profileData?.usersCount || 0;
   const collecting = profileData?.communityStatus === "COLLECTING";
   const avgER = profileData?.avgER || 0;
@@ -144,6 +152,9 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
       console.warn("Feed endpoint error, falling back to lastPosts:", feedErr);
     }
   }
+
+  // Debug: log feed result
+  console.log("Feed endpoint result: posts count =", posts.length, "fell back to lastPosts =", posts.length === 0);
 
   // Step 3: Fallback to lastPosts from profile if Feed returned nothing
   if (posts.length === 0) {
