@@ -52,10 +52,26 @@ const Dashboard = () => {
 
   const hasHandles = !!(profile?.instagram_handle || profile?.facebook_handle || profile?.youtube_handle || profile?.tiktok_handle);
 
+  // Weekly refresh throttle
+  const lastScanDate = profile?.last_scan_at ? new Date(profile.last_scan_at) : null;
+  const msInWeek = 7 * 24 * 60 * 60 * 1000;
+  const canRefreshFree = !lastScanDate || (Date.now() - lastScanDate.getTime()) >= msInWeek;
+  const canRefresh = planTier === "premium" || canRefreshFree;
+
+  function getRefreshCountdown(lastScan: Date): string {
+    const nextAvailable = new Date(lastScan.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const diff = nextAvailable.getTime() - Date.now();
+    if (diff <= 0) return "";
+    const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
+  }
+
   // Auto-trigger scan for new users who have handles but no score yet
   useEffect(() => {
     if (!scoreLoading && !latestScore && hasHandles && !refreshing && profile && session?.user?.id) {
-      handleRefresh();
+      handleRefresh(true);
     }
   }, [scoreLoading, latestScore, hasHandles, profile, session?.user?.id]);
 
@@ -67,13 +83,17 @@ const Dashboard = () => {
     }
   }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (force = false) => {
     if (!profile) return;
+    if (!force && !canRefresh) {
+      toast({ title: "Refresh not available yet", description: "Free accounts can refresh once per week. Upgrade to Premium for unlimited refreshes." });
+      return;
+    }
     setRefreshing(true);
     try {
       const { data, error } = await supabase.functions.invoke("scan-profile", {
         body: {
-        instagram: profile.instagram_handle || null,
+          instagram: profile.instagram_handle || null,
           facebook: profile.facebook_handle || null,
           youtube: profile.youtube_handle || null,
           tiktok: profile.tiktok_handle || null,
@@ -139,24 +159,26 @@ const Dashboard = () => {
                   Last updated: {new Date(latestScore.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="gap-2">
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                {refreshing ? "Scanning..." : "Refresh Score"}
-              </Button>
+              <div className="flex items-center gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRefresh()}
+                  disabled={refreshing || !canRefresh}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                  {refreshing ? "Scanning..." : canRefresh ? "Refresh Score" : `Next refresh in ${getRefreshCountdown(lastScanDate!)}`}
+                </Button>
+                {!canRefresh && planTier === "free" && (
+                  <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                    Premium: refresh anytime
+                  </Badge>
+                )}
+              </div>
             </div>
 
-            {/* First Report Card (new free users) */}
-            {planTier === "free" && (
-              <FirstReportCard signupDate={new Date().toISOString()} />
-            )}
-
-            {/* Disclaimer Banner */}
-            <ScoreDisclaimerBanner planTier={planTier} hasOAuthConnected={hasOAuthConnected} />
-
-            {/* Score-Based Urgency Alerts */}
-            <ScoreAlertNudges score={overallScore} scoreHistory={scoreHistory} />
-
-            {/* Top Row: Score + Dimensions */}
+            {/* Score + Dimensions — first thing users see */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-1 shadow-glow border-primary/10">
                 <CardContent className="flex flex-col items-center py-8 space-y-4">
@@ -190,7 +212,18 @@ const Dashboard = () => {
               </Card>
             </div>
 
-            {/* Middle Row: Score History + Competitors */}
+            {/* Disclaimer Banner */}
+            <ScoreDisclaimerBanner planTier={planTier} hasOAuthConnected={hasOAuthConnected} />
+
+            {/* Score-Based Urgency Alerts */}
+            <ScoreAlertNudges score={overallScore} scoreHistory={scoreHistory} />
+
+            {/* First Report Card (new free users) */}
+            {planTier === "free" && (
+              <FirstReportCard signupDate={profile?.created_at || new Date().toISOString()} />
+            )}
+
+            {/* Score Trend + Competitors */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
@@ -251,7 +284,7 @@ const Dashboard = () => {
                   score={overallScore}
                   scoreChange={scoreChange}
                   dimensions={dimensions}
-                  signupDate={new Date().toISOString()}
+                  signupDate={profile?.created_at || new Date().toISOString()}
                 />
                 <PremiumComparisonTable />
               </div>

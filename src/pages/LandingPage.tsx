@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BarChart3, Eye, Zap, Shield, TrendingUp, Target, Check } from "lucide-react";
+import EkgPulse from "@/components/EkgPulse";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,23 +29,23 @@ const PRICING = [
     features: [
       "Composite Visibility Score",
       "6-dimension breakdown",
-      "Top/bottom 3 posts per quarter",
-      "Monthly email report",
-      "2 competitors (1 AI-suggested + 1 manual)",
+      "Top 3 / bottom 3 posts",
+      "Monthly emailed report",
+      "2 competitors (manual)",
       "Month-over-month trends",
       "Instagram + Facebook + YouTube (public data)",
     ],
     cta: "Get Your Free Score", highlighted: false,
   },
   {
-    name: "Premium", price: "$29", period: "/mo", desc: "Full visibility intelligence with OAuth analytics",
+    name: "Premium", price: "$29", period: "/mo", desc: "Full visibility intelligence with connected analytics",
     features: [
       "Everything in Free, plus:",
-      "Weekly score updates (vs monthly)",
-      "Top/bottom 10 posts per quarter",
+      "Weekly emailed reports",
+      "Top 10 / bottom 10 posts with AI analysis",
       "10 competitors + AI auto-suggestions",
       "Full audience demographics & psychographics",
-      "24-month lookback audit",
+      "24-month lookback audit*",
       "Opportunity gap analysis",
       "Sentiment analysis",
       "All 4 platforms including TikTok",
@@ -132,11 +133,7 @@ const LandingPage = () => {
               <Card className="shadow-glow border-primary/10">
                 <CardContent className="pt-8 pb-6">
                   <div className="space-y-4 py-8">
-                    <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-                      <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-                      <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-                      <Eye className="h-8 w-8 text-primary animate-pulse" />
-                    </div>
+                    <EkgPulse className="w-48 h-16 mx-auto" />
                     <p className="text-sm text-muted-foreground animate-pulse">Analyzing your profiles...</p>
                   </div>
                 </CardContent>
@@ -223,6 +220,9 @@ const LandingPage = () => {
               </Card>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground text-center mt-4 max-w-lg mx-auto">
+            * 24-month lookback availability varies by platform. Instagram and Facebook provide up to 2 years of historical data. YouTube provides full channel history. TikTok data begins from your connection date.
+          </p>
         </div>
       </section>
 
