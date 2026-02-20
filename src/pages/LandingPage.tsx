@@ -84,6 +84,12 @@ const LandingPage = () => {
       if (data?.success && data?.score) {
         setDemoScore(data.score.overall);
         setScanData(data.score);
+        // Store scan results for post-auth retrieval on dashboard
+        localStorage.setItem("pending_scan", JSON.stringify({
+          score: data.score,
+          handles,
+          timestamp: Date.now(),
+        }));
       } else {
         throw new Error(data?.error || "Scan failed");
       }
