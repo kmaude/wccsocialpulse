@@ -65,6 +65,7 @@ interface PostData {
   date: string;
   engagement_rate: number;
   external_id: string;
+  thumbnail_url: string | null;
 }
 
 async function fetchInstagram(handle: string): Promise<PlatformResult> {
@@ -146,6 +147,7 @@ async function fetchInstagram(handle: string): Promise<PlatformResult> {
         date: dateStr,
         engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
         external_id: `instagram_${p.id || i}`,
+        thumbnail_url: p.url || p.thumbnail || p.display_url || null,
       };
     });
 
@@ -233,6 +235,7 @@ async function fetchYouTube(handle: string): Promise<PlatformResult> {
         date: v.snippet?.publishedAt || new Date().toISOString(),
         engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
         external_id: `youtube_${v.id}`,
+        thumbnail_url: v.snippet?.thumbnails?.high?.url || v.snippet?.thumbnails?.medium?.url || v.snippet?.thumbnails?.default?.url || null,
       });
     }
   }
@@ -269,6 +272,7 @@ async function fetchFacebook(handle: string): Promise<PlatformResult> {
         date: p.date || p.created_at || p.created_time || new Date().toISOString(),
         engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
         external_id: `facebook_${p.id || i}`,
+        thumbnail_url: p.full_picture || p.image || p.thumbnail || null,
       };
     });
 
@@ -308,6 +312,7 @@ async function fetchTikTok(handle: string): Promise<PlatformResult> {
         date: v.createTime ? new Date(v.createTime * 1000).toISOString() : v.date || new Date().toISOString(),
         engagement_rate: followers > 0 ? (likes + comments) / followers * 100 : 0,
         external_id: `tiktok_${v.id || i}`,
+        thumbnail_url: v.cover || v.dynamicCover || v.originCover || null,
       };
     });
 
@@ -649,7 +654,7 @@ serve(async (req) => {
             content_snippet: p.content,
             published_at: p.date,
             external_id: p.external_id,
-            metrics: { likes: p.likes, comments: p.comments, views: p.views, engagement_rate: p.engagement_rate },
+            metrics: { likes: p.likes, comments: p.comments, views: p.views, engagement_rate: p.engagement_rate, thumbnail_url: p.thumbnail_url },
           }));
           await supabase.from("posts").upsert(postRows, { onConflict: "user_id,platform,external_id", ignoreDuplicates: true });
         }
