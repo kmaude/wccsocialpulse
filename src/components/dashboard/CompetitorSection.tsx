@@ -212,8 +212,8 @@ export function CompetitorSection({ userScore, competitors, planTier }: Props) {
           </div>
 
           {candidates.length > 0 ? (
-            <div className="space-y-2 mt-2">
-              <p className="text-xs text-muted-foreground font-medium">Matching profiles:</p>
+            <div className="space-y-2 mt-2 max-h-[50vh] overflow-y-auto">
+              <p className="text-xs text-muted-foreground font-medium sticky top-0 bg-background py-1">Matching profiles:</p>
               {candidates.map((c) => (
                 <div key={`${c.platform}-${c.handle}`} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${confirming === c.handle ? "border-emerald-500 bg-emerald-500/5" : "hover:border-primary/20"}`}>
                   {c.avatarUrl ? (
