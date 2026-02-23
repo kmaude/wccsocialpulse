@@ -89,6 +89,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(async () => {
             await fetchProfile(session.user.id);
             await checkAdmin(session.user.id);
+            // Check subscription status after login
+            try {
+              const { data } = await supabase.functions.invoke("check-subscription");
+              if (data?.subscribed !== undefined) {
+                await fetchProfile(session.user.id);
+              }
+            } catch (e) {
+              console.error("Subscription check failed:", e);
+            }
             setLoading(false);
           }, 0);
         } else {
@@ -104,7 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id).then(() => {
-          checkAdmin(session.user.id).then(() => setLoading(false));
+          checkAdmin(session.user.id).then(async () => {
+            try {
+              const { data } = await supabase.functions.invoke("check-subscription");
+              if (data?.subscribed !== undefined) {
+                await fetchProfile(session.user.id);
+              }
+            } catch (e) {
+              console.error("Subscription check failed:", e);
+            }
+            setLoading(false);
+          });
         });
       } else {
         setLoading(false);
